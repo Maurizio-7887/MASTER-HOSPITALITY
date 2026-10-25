@@ -1,0 +1,44 @@
+{% extends 'base.html' %}{% block titolo %}Oggi — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Oggi, {{ oggi_d|dt }}</h1><span class="sp"></span>
+<a class="btn" href="/prenotazioni/nuova">+ Nuova prenotazione</a><a class="btn sec" href="/planner">Planner</a></div>
+{% if vuoto %}<div class="banner">La struttura è ancora vuota: inserisci <a href="/struttura?sez=tipo">tipologie</a> e <a href="/struttura?sez=camera">camere</a>, poi controlla piani tariffari e canali.</div>{% endif %}
+<div class="kpi">
+  <div class="card"><span>Stanotte</span><b>{{ venduto }} / {{ totale }}</b><span>camere vendute · {{ (venduto / totale * 100)|round|int if totale else 0 }}%</span></div>
+  <div class="card"><span>Arrivi da fare</span><b>{{ arrivi|length }}</b></div>
+  <div class="card"><span>Partenze da fare</span><b>{{ partenze|length }}</b></div>
+  <div class="card"><span>Ospiti in casa</span><b>{{ in_casa }}</b><span>camere</span></div>
+  <div class="card"><span>Camere da rifare</span><b class="{{ 'attenzione' if sporche else '' }}">{{ sporche }}</b><a class="mute" href="/housekeeping">housekeeping ›</a></div>
+  {% if mese %}<div class="card"><span>Mese a oggi</span><b>{{ mese.occupazione|pct }}</b><span>ADR {{ mese.adr|euro }} · RevPAR {{ mese.revpar|euro }}</span></div>{% endif %}
+</div>
+{% if mancati %}<div class="banner err"><b>{{ mancati|length }} arrivi di giorni passati non registrati</b>: fai il check-in o segna il no show —
+{% for p in mancati[:6] %}<a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }} ({{ p.arrivo|dt }})</a>{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+
+<div class="card"><h3>Occupazione dei prossimi 14 giorni</h3>
+<div class="strip">{% for g in prossimi %}{% set l = 0 if g.occ < 0.4 else 1 if g.occ < 0.6 else 2 if g.occ < 0.8 else 3 if g.occ < 0.95 else 4 %}
+<div class="liv{{ l }}" title="{{ g.venduto }} su {{ g.totale }}">{{ ['lun','mar','mer','gio','ven','sab','dom'][g.data.weekday()] }}<b>{{ (g.occ*100)|round|int }}%</b>{{ g.data.day }}</div>{% endfor %}</div>
+<p class="mute" style="margin:8px 0 0">Per decidere i prezzi di questi giorni: <a href="/revenue">DynaPrice</a>.</p></div>
+
+<div class="due">
+<div>
+<div class="card"><h3>Arrivi di oggi ({{ arrivi|length }})</h3>
+{% if arrivi %}<table><tr><th>Ospite</th><th>Camera</th><th>Notti</th><th>Canale</th><th></th></tr>
+{% for p in arrivi %}<tr><td><a href="/prenotazioni/{{ p.id }}"><b>{{ p.ospite.nominativo }}</b></a><br><span class="mute">{{ p.persone }} pers. · {{ p.piano.nome }}</span></td>
+<td>{% if p.camera %}<span class="cam">{{ p.camera.numero }}</span> <span class="pallino s-{{ p.camera.stato }}" title="{{ p.camera.stato }}"></span>{% else %}<span class="critico">da assegnare</span>{% endif %}<br><span class="mute">{{ p.tipo.codice }}</span></td>
+<td>{{ p.notti }}</td><td class="mute">{{ p.canale.nome }}</td><td><a class="btn mini" href="/prenotazioni/{{ p.id }}#alloggiati">Check-in</a></td></tr>{% endfor %}</table>
+{% else %}<p class="mute">Nessun arrivo da registrare.</p>{% endif %}</div>
+
+<div class="card"><h3>Partenze ({{ partenze|length }})</h3>
+{% if partenze %}<table><tr><th>Ospite</th><th>Camera</th><th>Dal</th><th></th></tr>
+{% for p in partenze %}<tr><td><a href="/prenotazioni/{{ p.id }}"><b>{{ p.ospite.nominativo }}</b></a>{% if p.partenza < oggi_d %} <span class="critico">partenza prevista il {{ p.partenza|dt }}</span>{% endif %}</td>
+<td><span class="cam">{{ p.camera.numero if p.camera else '—' }}</span></td><td>{{ p.arrivo|dt }}</td><td><a class="btn mini" href="/prenotazioni/{{ p.id }}#conto">Conto e check-out</a></td></tr>{% endfor %}</table>
+{% else %}<p class="mute">Nessuna partenza da registrare.</p>{% endif %}</div>
+</div>
+<div>
+<div class="card"><h3>Opzioni in scadenza</h3>
+{% for p in opzioni %}<div><a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }}</a> · {{ p.arrivo|dt }} · scade <b class="{{ 'critico' if p.opzione_fino and p.opzione_fino <= oggi_d }}">{{ p.opzione_fino|dt }}</b></div>{% else %}<p class="mute">Nessuna opzione aperta.</p>{% endfor %}</div>
+<div class="card"><h3>Preventivi da seguire</h3>
+{% for p in preventivi %}<div><a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }}</a> · {{ p.arrivo|dt }} · {{ p.importo|euro }}</div>{% else %}<p class="mute">Nessun preventivo aperto.</p>{% endfor %}</div>
+<div class="card"><h3>Prenotazioni arrivate da ieri</h3>
+{% for p in nuove %}<div><a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }}</a> <span class="st st-{{ p.stato }}">{{ p.stato.replace('_',' ') }}</span> <span class="mute">{{ p.canale.nome }} · {{ p.arrivo|dt }} · {{ p.importo|euro }}</span></div>{% else %}<p class="mute">Nessuna.</p>{% endfor %}</div>
+</div></div>
+{% endblock %}

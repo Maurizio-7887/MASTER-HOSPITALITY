@@ -1,0 +1,76 @@
+{% extends 'base.html' %}{% block titolo %}Nuova prenotazione — Master Hospitality{% endblock %}{% block corpo %}
+<h1>Nuova prenotazione</h1>
+{% if not tipi %}<div class="banner err">Prima inserisci tipologie e camere in <a href="/struttura?sez=tipo">Struttura</a>.</div>{% endif %}
+<form method="post" id="f-nuova"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="due"><div>
+<div class="card"><h3>Soggiorno</h3>
+<div class="form-griglia">
+  <div><label>Arrivo</label><input type="date" name="arrivo" value="{{ d.arrivo }}" required></div>
+  <div><label>Partenza</label><input type="date" name="partenza" value="{{ d.partenza }}" required></div>
+  <div><label>Notti</label><input type="number" id="notti" min="1" max="60" style="width:80px"></div>
+  <div><label>Adulti</label><input type="number" name="adulti" min="1" max="8" value="{{ d.adulti }}"></div>
+  <div><label>Bambini</label><input type="number" name="bambini" min="0" max="6" value="{{ d.bambini }}"></div>
+  <div class="largo"><label>Tipologia</label><select name="tipo_id" required>{% for t in tipi %}<option value="{{ t.id }}" {{ 'selected' if d.tipo_id == t.id }}>{{ t.nome }} (max {{ t.posti_max }})</option>{% endfor %}</select></div>
+  <div class="largo"><label>Piano tariffario</label><select name="piano_id">{% for p in piani %}<option value="{{ p.id }}" {{ 'selected' if d.piano_id == p.id }}>{{ p.nome }}</option>{% endfor %}</select></div>
+  <div class="largo"><label>Canale</label><select name="canale_id">{% for c in canali %}<option value="{{ c.id }}" {{ 'selected' if d.canale_id == c.id or (not d.canale_id and c.nome.startswith('Telefono')) }}>{{ c.nome }}{% if c.commissione_pct %} ({{ c.commissione_pct|round(1) }}%){% endif %}</option>{% endfor %}</select></div>
+  <div><label>Camera</label><select name="camera_id"><option value="">Assegna in automatico</option>{% for c in camere %}<option value="{{ c.id }}" data-tipo="{{ c.tipo_id }}" {{ 'selected' if d.camera_id == c.id }}>{{ c.numero }} · {{ c.tipo.codice }}</option>{% endfor %}</select></div>
+  <div><label>Stato</label><select name="stato"><option value="confermata">Confermata</option><option value="opzione" {{ 'selected' if d.stato == 'opzione' }}>Opzione</option><option value="preventivo" {{ 'selected' if d.stato == 'preventivo' }}>Preventivo</option></select></div>
+  <div><label>Numero camere</label><input type="number" name="quante" min="1" max="30" value="{{ d.quante or 1 }}" title="Per i gruppi: crea una prenotazione per camera"></div>
+  <div class="largo"><label>Nome del gruppo (facoltativo)</label><input name="gruppo" value="{{ d.gruppo }}"></div>
+  <div class="largo"><label>Riferimento del portale</label><input name="rif_canale" value="{{ d.rif_canale }}"></div>
+</div></div>
+<div class="card"><h3>Ospite</h3>
+{% if ospite %}<input type="hidden" name="ospite_id" value="{{ ospite.id }}"><p><b>{{ ospite.nominativo }}</b> <span class="mute">{{ ospite.email }}</span> · <a href="/prenotazioni/nuova">cambia</a></p>
+{% else %}
+<div class="form-griglia">
+  <div class="largo"><label>Cerca un ospite già registrato</label><input id="cerca-ospite" placeholder="cognome o email" autocomplete="off"><div id="trovati" class="mute"></div></div>
+  <div><label>Cognome (o nome del gruppo)</label><input name="cognome" value="{{ d.cognome }}" required></div>
+  <div><label>Nome</label><input name="nome" value="{{ d.nome }}"></div>
+  <div class="largo"><label>Email</label><input type="email" name="email" value="{{ d.email }}"></div>
+  <div><label>Telefono</label><input name="telefono" value="{{ d.telefono }}"></div>
+  <div><label>Paese</label><input name="paese" value="{{ d.paese }}"></div>
+</div>
+<label class="in"><input type="checkbox" name="consenso_marketing" value="1"> L'ospite acconsente a ricevere offerte (GDPR)</label>
+{% endif %}
+<label>Note</label><textarea name="note" rows="2" style="width:100%">{{ d.note }}</textarea>
+</div>
+</div>
+<div>
+<div class="card" id="prev"><h3>Preventivo</h3><p class="mute">Compila date, persone e tipologia.</p></div>
+<div class="card"><label class="in"><input type="checkbox" name="caparra_incassata" value="1"> Caparra incassata ora</label>
+<select name="metodo"><option value="carta">Carta</option><option value="bonifico">Bonifico</option><option value="contanti">Contanti</option></select>
+<div class="riga-az"><button>Salva la prenotazione</button><a class="btn sec" href="/prenotazioni">Annulla</a></div></div>
+</div></div>
+</form>
+{% endblock %}
+{% block script %}<script>
+const F = document.getElementById('f-nuova');
+const val = n => F.elements[n] ? F.elements[n].value : '';
+function aggiornaNotti() { const a = new Date(val('arrivo')), b = new Date(val('partenza')); const n = Math.round((b - a) / 86400000); document.getElementById('notti').value = n > 0 ? n : ''; }
+document.getElementById('notti').addEventListener('input', e => { const n = +e.target.value; if (n > 0 && val('arrivo')) { const d = new Date(val('arrivo') + 'T12:00:00'); d.setDate(d.getDate() + n); F.elements.partenza.value = d.toISOString().slice(0, 10); preventivo(); } });
+let tm;
+async function preventivo() {
+  aggiornaNotti();
+  const q = new URLSearchParams({tipo_id: val('tipo_id'), piano_id: val('piano_id'), arrivo: val('arrivo'), partenza: val('partenza'), adulti: val('adulti'), bambini: val('bambini')});
+  const r = await api('GET', '/api/preventivo?' + q);
+  const el = document.getElementById('prev');
+  if (!r.ok) { el.innerHTML = `<h3>Preventivo</h3><div class="banner err">${esc(r.errore)}</div>`; return; }
+  const p = r.dati;
+  el.innerHTML = `<h3>Preventivo</h3><div class="prezzo-big">${euro(p.totale)}</div><div class="mute">${p.n_notti} notti · ${esc(p.tipo)} · ${esc(p.piano)}${p.caparra ? ' · caparra ' + euro(p.caparra) : ''}</div>
+    ${!p.disponibile ? '<div class="banner err" style="margin-top:8px">Nessuna camera libera di questa tipologia per tutte le notti</div>' : `<div class="ok" style="margin-top:6px">✓ Disponibile (${p.minimo_disponibili} camere libere nella notte più piena)</div>`}
+    ${p.restrizioni.length ? `<div class="banner err" style="margin-top:8px">${p.restrizioni.map(esc).join('<br>')}</div>` : ''}
+    <table style="margin-top:8px">${p.notti.map(n => `<tr><td>${dataIt(n.data)} ${giornoSett(n.data)}</td><td class="num">${euro(n.prezzo)}</td><td class="mute num">${n.colazione ? 'di cui colazione ' + euro(n.colazione) : ''}</td></tr>`).join('')}</table>
+    <p class="mute">Imposta di soggiorno a parte: circa ${euro(p.tassa)}. ${esc(p.condizioni)}</p>
+    <h3>Le altre tipologie</h3><table>${p.alternative.map(a => `<tr><td>${esc(a.nome)}</td><td class="num">${euro(a.totale)}</td><td class="num ${a.disponibili > 0 ? 'ok' : 'critico'}">${a.disponibili > 0 ? a.disponibili + ' libere' : 'esaurita'}</td></tr>`).join('')}</table>`;
+}
+F.addEventListener('input', e => { if (['note', 'cognome', 'nome', 'email', 'telefono', 'paese', 'gruppo', 'rif_canale'].includes(e.target.name) || e.target.id === 'cerca-ospite' || e.target.id === 'notti') return; clearTimeout(tm); tm = setTimeout(preventivo, 250); });
+F.elements.camera_id.addEventListener('change', e => { const o = e.target.selectedOptions[0]; if (o.dataset.tipo) { F.elements.tipo_id.value = o.dataset.tipo; preventivo(); } });
+const co = document.getElementById('cerca-ospite');
+if (co) co.addEventListener('input', async () => {
+  const r = await api('GET', '/api/ospiti?q=' + encodeURIComponent(co.value));
+  if (!r.ok) return;
+  const qs = new URLSearchParams(new FormData(F)); qs.delete('_csrf');
+  document.getElementById('trovati').innerHTML = r.dati.ospiti.map(o => { qs.set('ospite_id', o.id); return `<div><a href="/prenotazioni/nuova?${qs}">${esc(o.nome)}</a> ${esc(o.email || '')} ${esc(o.paese || '')}</div>`; }).join('');
+});
+preventivo();
+</script>{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}{% block titolo %}Spazi di lavoro — Master Hospitality{% endblock %}{% block corpo %}
+<h1>Spazi di lavoro</h1>
+<p class="mute">Ogni hotel o B&amp;B cliente e ogni allievo ha il suo spazio: vede solo i propri dati. Oltre la scadenza lo spazio passa in sola lettura.
+Con <b>Entra</b> lavori dentro uno spazio per assistenza; poi torni al tuo dalla barra in alto.</p>
+
+{% if credenziali %}
+<div class="card" style="margin-bottom:14px;border-color:var(--ok)">
+<h2 style="margin-top:0">Credenziali degli allievi</h2>
+<p class="mute">Indirizzo: <b>{{ request.host_url }}</b> — consegna a ogni allievo il suo nome utente e la sua password. Al primo accesso può cambiarla cliccando sul proprio nome.</p>
+<table><tr><th>Nome utente</th><th>Password</th></tr>{% for u, p in credenziali %}<tr><td><b>{{ u }}</b></td><td><code>{{ p }}</code></td></tr>{% endfor %}</table>
+<p><button class="sec" onclick="window.print()">Stampa</button></p>
+</div>
+{% endif %}
+
+{% if richieste %}
+<div class="card" style="margin-bottom:14px;border-color:var(--acc)">
+<h2 style="margin-top:0">Richieste di attivazione ({{ richieste|length }})</h2>
+<p class="mute">Ricevuto il bonifico con il codice in causale, attiva lo spazio: il cliente entra con il nome utente e la password che ha scelto.</p>
+<div class="scroll"><table>
+<tr><th>Codice</th><th>Data</th><th>Ragione sociale</th><th>Referente</th><th>Contatti</th><th>Nome utente</th><th>Attiva fino al</th><th></th></tr>
+{% for r in richieste %}<tr>
+<td><b>{{ r.codice }}</b></td><td>{{ r.creato_il.strftime('%d/%m/%Y') }}</td><td>{{ r.ragione_sociale }}</td><td>{{ r.nome }}</td>
+<td><a href="mailto:{{ r.email }}?subject={{ ('MASTER HOSPITALITY ' ~ r.codice)|urlencode }}">{{ r.email }}</a>{% if r.telefono %}<br>{{ r.telefono }}{% endif %}</td><td>{{ r.username }}</td>
+<td><form method="post" class="bar" style="margin:0;gap:4px"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="attiva_richiesta"><input type="hidden" name="token" value="{{ r.token }}">
+  <button class="mini" name="piu" value="mese">Attiva 1 mese</button><button class="mini" name="piu" value="anno">Attiva 1 anno</button>
+  <input type="date" name="data" style="padding:2px 4px;font-size:12px"><button class="mini sec" name="piu" value="data">Attiva fino a</button></form></td>
+<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="rifiuta_richiesta"><input type="hidden" name="token" value="{{ r.token }}"><button class="sec mini">Archivia</button></form></td>
+</tr>{% endfor %}
+</table></div></div>
+{% endif %}
+
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(380px,1fr));margin-bottom:14px">
+<div class="card"><h2 style="margin-top:0">Nuovo spazio cliente</h2>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="nuovo">
+  <div class="bar"><div style="flex:1"><label>Nome (ragione sociale)</label><input name="nome" required style="width:100%"></div>
+  <div><label>Tipo</label><select name="tipo">{% for k, v in TIPI.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div></div>
+  <div class="bar"><div><label>Scadenza abbonamento</label><input type="date" name="scadenza"></div>
+  <div style="flex:1"><label>Email</label><input name="email" type="email" style="width:100%"></div></div>
+  <div class="bar"><div><label>Dati iniziali</label><select name="dati">{% for k, v in DATI.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div></div>
+  <h3 style="margin:10px 0 0;font-size:14px">Amministratore dello spazio</h3>
+  <div class="bar"><div><label>Nome e cognome</label><input name="admin_nome" required></div><div><label>Nome utente</label><input name="admin_username" required autocapitalize="none"></div>
+  <div><label>Password</label><input name="admin_password" required minlength="8" autocomplete="off"></div></div>
+  <button>Crea spazio</button>
+</form></div>
+<div class="card"><h2 style="margin-top:0">Nuova classe (corso)</h2>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="classe">
+  <p class="mute">Crea uno spazio per ogni allievo con l'Hotel Le Logge già avviato e il tutor con gli esercizi guidati del corso.</p>
+  <div class="bar"><div style="flex:1"><label>Nome del corso</label><input name="corso" value="Corso di hotel management" style="width:100%"></div></div>
+  <div class="bar"><div><label>Prefisso nomi utente</label><input name="prefisso" value="allievo" autocapitalize="none"></div>
+  <div><label>Numero allievi</label><input type="number" name="numero" min="1" max="60" value="10"></div>
+  <div><label>Accesso fino al</label><input type="date" name="scadenza"></div></div>
+  <button>Crea classe</button>
+</form></div>
+</div>
+
+<div class="scroll"><table>
+<tr><th>Spazio</th><th>Tipo</th><th>Utenti</th><th class="num">Prenotazioni</th><th>Scadenza</th><th>Stato</th><th></th></tr>
+{% for s in spazi %}<tr style="{{ '' if s.attivo else 'opacity:.55' }}">
+<td><b>{{ s.nome }}</b>{% if s.email %}<br><span class="mute">{{ s.email }}</span>{% endif %}</td>
+<td>{{ TIPI.get(s.tipo, s.tipo) }}</td>
+<td class="mute">{{ (utenti.get(s.id) or [])|map(attribute='username')|join(', ') }}</td>
+<td class="num">{{ commesse.get(s.id, 0) }}</td>
+<td>{% if s.scadenza %}<span class="{{ 'critico' if s.scadenza < oggi else '' }}">{{ s.scadenza.strftime('%d/%m/%Y') }}</span>{% else %}<span class="mute">nessuna</span>{% endif %}
+  <form method="post" class="bar" style="margin:4px 0 0;gap:4px"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="scadenza"><input type="hidden" name="id" value="{{ s.id }}">
+  <button class="sec mini" name="piu" value="mese">+1 mese</button><button class="sec mini" name="piu" value="anno">+1 anno</button>
+  <input type="date" name="data" style="padding:2px 4px;font-size:12px"><button class="sec mini" name="piu" value="data">Imposta</button><button class="sec mini" name="piu" value="nessuna" title="Senza scadenza">∞</button></form></td>
+<td>{% if not s.attivo %}<span class="critico">sospeso</span>{% elif s.scaduto(oggi) %}<span class="critico">scaduto · sola lettura</span>{% else %}<span class="ok">attivo</span>{% endif %}</td>
+<td style="white-space:nowrap"><form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="id" value="{{ s.id }}">
+  <button class="mini" name="azione" value="entra">Entra</button>{% if s.id != 1 %} <button class="sec mini" name="azione" value="attivo">{{ 'Sospendi' if s.attivo else 'Riattiva' }}</button>{% endif %}</form></td>
+</tr>{% endfor %}
+</table></div>
+{% endblock %}

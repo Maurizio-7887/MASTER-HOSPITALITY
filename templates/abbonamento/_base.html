@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titolo %}MASTER HOSPITALITY{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+<nav><span class="logo">MASTER<b>HOSPITALITY</b></span><span class="sp"></span><a href="/login">Accedi</a></nav>
+<main>{% block contenuto %}{% endblock %}</main>
+</body></html>

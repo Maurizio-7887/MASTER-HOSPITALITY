@@ -1,0 +1,42 @@
+{% extends 'base.html' %}{% block titolo %}Struttura — Master Hospitality{% endblock %}{% block corpo %}
+{% set SEZ = [('parametri','Parametri'),('tipo','Tipologie'),('camera','Camere'),('piano','Piani tariffari'),('stagione','Stagioni'),('canale','Canali'),('evento','Eventi'),('restrizione','Restrizioni'),('costo','Costi fissi')] %}
+<h1>Struttura</h1>
+<div class="bar">{% for k, et in SEZ %}<a class="btn {{ '' if sez == k else 'sec' }} mini" href="/struttura?sez={{ k }}">{{ et }}</a>{% endfor %}
+<span class="sp"></span><span class="mute">{{ n_camere }} camere in uso</span></div>
+
+{% macro campo(nome, et, tipo, opz, v) %}
+{% if tipo == 'bool' %}<input type="checkbox" name="{{ nome }}" value="1" {{ 'checked' if v }} title="{{ et }}">
+{% elif tipo == 'date' %}<input type="date" name="{{ nome }}" value="{{ v or '' }}" required>
+{% elif tipo in ('int', 'float', 'float?') %}<input name="{{ nome }}" value="{{ '' if v is none else ('%g'|format(v|round(2)) if tipo != 'int' else v)|replace('.', ',') }}" style="width:80px" inputmode="decimal">
+{% elif tipo in ('tipo', 'tipo?') %}<select name="{{ nome }}">{% if tipo == 'tipo?' %}<option value="">Tutte</option>{% endif %}{% for t in tipi %}<option value="{{ t.id }}" {{ 'selected' if v == t.id }}>{{ t.codice }}</option>{% endfor %}</select>
+{% elif tipo == 'scelta' %}<select name="{{ nome }}">{% for k, e in opz.items() %}<option value="{{ k }}" {{ 'selected' if v == k }}>{{ e }}</option>{% endfor %}</select>
+{% elif tipo == 'color' %}<input type="color" name="{{ nome }}" value="{{ v or '#1971c2' }}" style="width:46px;padding:2px">
+{% else %}<input name="{{ nome }}" value="{{ v or '' }}" {{ 'required' if nome in ('codice','nome','numero','voce') }} style="width:{{ '70px' if nome in ('codice','numero','piano') else '100%' }};min-width:{{ '60px' if nome in ('codice','numero','piano') else '140px' }}">{% endif %}
+{% endmacro %}
+
+{% if sez == 'parametri' %}
+<div class="card"><form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="parametri"><input type="hidden" name="sez" value="parametri">
+<div class="form-griglia" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">{% for k, et, v in parametri %}<div><label>{{ et }}</label><input name="{{ k }}" value="{{ v }}" style="width:100%"></div>{% endfor %}</div>
+<div class="riga-az"><button>Salva i parametri</button></div></form>
+<p class="mute">L'imposta di soggiorno cambia da Comune a Comune e per categoria della struttura: verifica la tariffa vigente sul sito del tuo Comune. Il margine minimo è la quota del prezzo netto che DynaPrice garantisce dopo commissioni e costo della camera.</p></div>
+{% else %}
+{% set modello, titolo, campi = ENTITA[sez] %}
+<div class="card"><h2>{{ titolo }}</h2>
+{% if sez == 'tipo' %}<p class="mute">Listino = prezzo a notte della camera per le persone comprese, IVA inclusa, prima di stagione e piano. Costo camera venduta = pulizia, biancheria, cortesie ed energia per ogni notte venduta. La soglia è il prezzo minimo calcolato da DynaPrice.</p>{% endif %}
+{% if sez == 'stagione' %}<p class="mute">Il prezzo del giorno è listino × coefficiente della stagione (salvo prezzi decisi in DynaPrice). Senza stagione vale il listino.</p>{% endif %}
+{% if sez == 'costo' %}<p class="mute">Costi mensili per reparto secondo lo schema USALI: servono per GOP, GOPPAR e costo per camera venduta. Totale: <b>{{ totale_fissi|euro }}</b> al mese. Affitti e leasing stanno sotto il GOP.</p>{% endif %}
+{% if sez == 'restrizione' %}<p class="mute">Soggiorno minimo (sulla data di arrivo), arrivi chiusi, chiuso alla vendita. Si vedono le restrizioni da oggi in poi.</p>{% endif %}
+<div class="scroll"><table><tr>{% for nome, et, tipo, opz in campi %}<th>{{ et }}</th>{% endfor %}{% if sez == 'tipo' %}<th>Camere</th><th class="num">Soglia</th>{% endif %}<th></th></tr>
+{% for o in elenchi[sez] %}<tr><form method="post" id="f{{ o.id }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="sez" value="{{ sez }}"><input type="hidden" name="id" value="{{ o.id }}"></form>
+{% for nome, et, tipo, opz in campi %}<td>{{ campo(nome, et, tipo, opz, o[nome])|replace('name=', 'form="f' ~ o.id ~ '" name=')|safe }}</td>{% endfor %}
+{% if sez == 'tipo' %}<td>{{ o.camere|length }}</td><td class="num">{{ soglie.get(o.id)|euro }}</td>{% endif %}
+<td style="white-space:nowrap"><button class="mini" form="f{{ o.id }}" name="azione" value="salva">Salva</button> <button class="sec mini" form="f{{ o.id }}" name="azione" value="elimina" onclick="return confirm('Eliminare?')">✕</button></td></tr>{% endfor %}
+<tr style="background:var(--sel)"><form method="post" id="fnuovo"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="sez" value="{{ sez }}"></form>
+{% for nome, et, tipo, opz in campi %}<td>{{ campo(nome, et, tipo, opz, {'attiva': True, 'attivo': True, 'colazione': True, 'rimborsabile': True, 'posti_base': 2, 'posti_max': 2, 'coefficiente': 1, 'min_notti': 1, 'ordine': elenchi[sez]|length, 'giorni_cancellazione': 2, 'impatto_pct': 20, 'reparto': 'camere', 'tipo': 'diretto'}.get(nome))|replace('name=', 'form="fnuovo" name=')|safe }}</td>{% endfor %}
+{% if sez == 'tipo' %}<td></td><td></td>{% endif %}<td><button class="mini" form="fnuovo" name="azione" value="salva">+ Aggiungi</button></td></tr>
+</table></div>
+{% if sez == 'camera' %}<form method="post" class="bar" style="margin-top:12px"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="camere_serie"><input type="hidden" name="sez" value="camera">
+<b>Crea una serie:</b> tipologia <select name="tipo_id">{% for t in tipi %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}</select> dal numero <input type="number" name="da" style="width:80px"> al <input type="number" name="a" style="width:80px"><button class="sec">Crea</button></form>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

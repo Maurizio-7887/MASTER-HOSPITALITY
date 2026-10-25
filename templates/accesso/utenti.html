@@ -1,0 +1,50 @@
+{% extends 'base.html' %}{% block titolo %}Utenti — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Utenti e ruoli</h1><span class="sp"></span>{% if spazio and spazio.stripe_cliente %}<a class="btn" href="/abbonamento/gestisci" style="background:transparent;color:var(--ink);border:1px solid var(--line)">💳 Abbonamento e fatture</a>{% endif %}<a class="btn" href="/esporta.zip" style="background:transparent;color:var(--ink);border:1px solid var(--line)" title="Tutti i dati di questo spazio in file CSV, apribili con Excel">⬇ Esporta tutti i dati</a></div>
+<p class="mute"><b>Direzione</b>: tutto, compresi gli utenti · <b>Revenue manager</b>: tutto tranne gli utenti ·
+<b>Reception</b>: prenotazioni, planner, ospiti, conti, check-in e check-out, housekeeping (non vede DynaPrice, controllo e struttura) ·
+<b>Governante / piani</b>: solo l'housekeeping, anche da telefono.</p>
+<div class="card" style="margin-bottom:14px">
+<h2 style="margin-top:0">Nuovo utente</h2>
+<form method="post" class="bar" style="align-items:flex-end">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="nuovo">
+  <div><label>Nome e cognome</label><input name="nome" required></div>
+  <div><label>Nome utente</label><input name="username" autocapitalize="none" required></div>
+  <div><label>Password iniziale</label><input name="password" type="text" minlength="8" required autocomplete="off"></div>
+  <div><label>Ruolo</label><select name="ruolo">{% for k, v in RUOLI.items() %}<option value="{{ k }}" {{ 'selected' if k == 'reception' }}>{{ v }}</option>{% endfor %}</select></div>
+  <div><button>Crea</button></div>
+</form></div>
+<div class="scroll"><table>
+<tr><th>Nome</th><th>Utente</th><th>Ruolo</th><th>Ultimo accesso</th><th>Nuova password</th><th>Stato</th></tr>
+{% for u in utenti %}<tr style="{{ '' if u.attivo else 'opacity:.5' }}">
+<td>{{ u.nome }}</td><td>{{ u.username }}</td>
+<td><form method="post" class="bar" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="ruolo"><input type="hidden" name="id" value="{{ u.id }}">
+<select name="ruolo">{% for k, v in RUOLI.items() %}<option value="{{ k }}" {{ 'selected' if u.ruolo == k }}>{{ v }}</option>{% endfor %}</select>
+<button class="sec mini">Salva</button></form></td>
+<td class="mute">{{ u.ultimo_accesso.strftime('%d/%m/%Y %H:%M') if u.ultimo_accesso else 'mai' }}</td>
+<td><form method="post" class="bar" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="password"><input type="hidden" name="id" value="{{ u.id }}">
+<input name="password" type="text" minlength="8" placeholder="almeno 8 caratteri" autocomplete="off" style="width:150px"><button class="sec mini">Imposta</button></form></td>
+<td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="attivo"><input type="hidden" name="id" value="{{ u.id }}">
+<button class="sec mini">{{ 'Disattiva' if u.attivo else 'Riattiva' }}</button></form></td>
+</tr>{% endfor %}
+</table></div>
+{% if utente.ruolo == 'admin' %}<div class="card" style="margin-top:18px"><h2 style="margin-top:0">Tutor del corso</h2>
+<p class="mute">{% if corso_attivo %}Il tutor è attivo in questo spazio: aprilo con «🎓 Tutor» nella barra in alto.{% else %}Attiva il tutor laterale con gli esercizi guidati del corso di hotel management su questo spazio.{% endif %}</p>
+{% if not corso_attivo %}<button class="sec" onclick="api('POST','/api/tutor/attiva',{}).then(r=>r.ok?location.reload():toast(r.errore))">Attiva il tutor</button>{% endif %}</div>{% endif %}
+{% if not ci_sono_dati %}
+<div class="card" style="margin-top:18px">
+<h2 style="margin-top:0">Dati dimostrativi</h2>
+<p class="mute">La struttura è vuota. Puoi caricare l'Hotel Le Logge (Firenze, 24 camere, cinque mesi di prenotazioni simulate) per provare il programma o mostrarlo; poi lo elimini da qui con un clic.</p>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="carica_demo">
+<button>Carica dati dimostrativi</button></form></div>
+{% endif %}
+{% if ci_sono_dati %}
+<div class="card" style="margin-top:18px;border-color:#ffa8a8">
+<h2 style="margin-top:0">Svuota l'archivio</h2>
+<p class="mute">Elimina camere, tariffe, ospiti, prenotazioni e conti (dati dimostrativi o di prova) e gli utenti demo. Gli altri utenti restano. Non si può annullare.</p>
+<form method="post" class="bar" style="align-items:flex-end">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="elimina_demo">
+  <div><label>Scrivi ELIMINA per confermare</label><input name="conferma" autocomplete="off" autocapitalize="characters"></div>
+  <div><button style="background:#c92a2a">Elimina tutti i dati e riparti da zero</button></div>
+</form></div>
+{% endif %}
+{% endblock %}

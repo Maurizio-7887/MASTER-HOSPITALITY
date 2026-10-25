@@ -1,0 +1,20 @@
+{% extends 'abbonamento/_base.html' %}
+{% block titolo %}Richiesta inviata — MASTER HOSPITALITY{% endblock %}
+{% block contenuto %}
+<div class="login" style="max-width:600px">
+  <div style="font-size:46px;color:var(--ok);text-align:center">✓</div>
+  <h1 style="text-align:center">Richiesta ricevuta</h1>
+  <p>Grazie, <b>{{ isc.nome }}</b>. La richiesta per <b>{{ isc.ragione_sociale }}</b> è registrata con il codice:</p>
+  <p style="text-align:center;font-size:26px;font-weight:800;letter-spacing:.05em">{{ isc.codice }}</p>
+  <div class="card">
+    <h2 style="margin-top:0">Bonifico</h2>
+    {% if prezzo %}<p>Importo: <b>{{ prezzo }}</b></p>{% endif %}
+    <p>Intestatario: <b>{{ intestatario }}</b></p>
+    {% if iban %}<p>IBAN: <b style="font-family:ui-monospace,Menlo,Consolas,monospace">{{ iban }}</b></p>
+    {% else %}<p>Le coordinate bancarie ti arrivano via email all'indirizzo <b>{{ isc.email }}</b>.</p>{% endif %}
+    <p>Causale: <b>{{ isc.codice }} — MASTER HOSPITALITY — {{ isc.ragione_sociale }}</b></p>
+  </div>
+  <p>Appena riceviamo il pagamento attiviamo lo spazio e ti scriviamo. Entrerai da <a href="/login">questa pagina</a> con il nome utente <b>{{ isc.username }}</b> e la password che hai scelto.</p>
+  <p class="mute">Per qualsiasi domanda: <a href="mailto:info@mauriziogustinicchiconsulting.it?subject={{ isc.codice|urlencode }}">info@mauriziogustinicchiconsulting.it</a>, indicando il codice {{ isc.codice }}.</p>
+</div>
+{% endblock %}

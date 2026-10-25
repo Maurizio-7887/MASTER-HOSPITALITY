@@ -1,0 +1,24 @@
+{% extends 'base.html' %}{% block titolo %}Prenotazioni — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Prenotazioni</h1><span class="sp"></span><a class="btn" href="/prenotazioni/nuova">+ Nuova prenotazione</a></div>
+<form class="bar card" method="get" style="padding:10px">
+  <input name="q" value="{{ args.get('q','') }}" placeholder="Ospite, email, codice, gruppo" style="min-width:220px">
+  <select name="stato"><option value="attive" {{ 'selected' if stato == 'attive' }}>Aperte (preventivi, opzioni, confermate, in casa)</option><option value="tutte" {{ 'selected' if stato == 'tutte' }}>Tutte</option>
+  {% for k, v in STATI.items() %}<option value="{{ k }}" {{ 'selected' if stato == k }}>{{ v }}</option>{% endfor %}</select>
+  <select name="canale"><option value="">Tutti i canali</option>{% for c in canali %}<option value="{{ c.id }}" {{ 'selected' if args.get('canale')|int == c.id }}>{{ c.nome }}</option>{% endfor %}</select>
+  <label class="in" style="margin:0">dal <input type="date" name="da" value="{{ args.get('da','') }}"></label><label class="in" style="margin:0">al <input type="date" name="a" value="{{ args.get('a','') }}"></label>
+  <select name="ordine"><option value="">per data di arrivo</option><option value="recenti" {{ 'selected' if args.get('ordine') == 'recenti' }}>più recenti</option></select>
+  <button>Cerca</button></form>
+<div class="scroll"><table>
+<tr><th>Codice</th><th>Ospite</th><th>Stato</th><th>Arrivo</th><th class="num">Notti</th><th>Camera</th><th>Piano</th><th>Canale</th><th class="num">Importo</th><th>Prenotata il</th></tr>
+{% for p in righe %}<tr>
+<td><a href="/prenotazioni/{{ p.id }}">{{ p.codice }}</a></td>
+<td><b>{{ p.ospite.nominativo }}</b>{% if p.gruppo %}<br><span class="chip">{{ p.gruppo }}</span>{% endif %}</td>
+<td><span class="st st-{{ p.stato }}">{{ STATI[p.stato] }}</span>{% if p.penale %}<br><span class="mute">penale {{ p.penale|euro(2) }}</span>{% endif %}</td>
+<td>{{ p.arrivo|dt }}</td><td class="num">{{ p.notti }}</td>
+<td>{% if p.camera %}<span class="cam">{{ p.camera.numero }}</span>{% endif %} <span class="mute">{{ p.tipo.codice }}</span></td>
+<td class="mute">{{ p.piano.codice }}</td><td class="mute">{{ p.canale.nome }}</td><td class="num">{{ p.importo|euro(2) }}</td>
+<td class="mute">{{ p.creato_il.strftime('%d/%m/%Y') }}</td></tr>
+{% else %}<tr><td colspan="10" class="mute">Nessuna prenotazione trovata.</td></tr>{% endfor %}
+</table></div>
+{% if righe|length >= 400 %}<p class="mute">Mostrate le prime 400: restringi la ricerca.</p>{% endif %}
+{% endblock %}

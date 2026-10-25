@@ -1,0 +1,59 @@
+{% extends 'base.html' %}{% block titolo %}DynaPrice — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">DynaPrice · prezzi e previsione</h1><span class="sp"></span>
+<form method="get" class="bar" style="margin:0"><input type="date" name="da" value="{{ da }}"><select name="giorni">{% for n2 in [14, 28, 42, 60, 90] %}<option value="{{ n2 }}" {{ 'selected' if n2 == n }}>{{ n2 }} giorni</option>{% endfor %}</select><button class="sec">Mostra</button></form>
+<a class="btn sec" href="/revenue/rischio">Rischio cancellazioni</a></div>
+
+<div class="card" style="padding:8px">
+<div class="bar" style="margin:4px 4px 8px"><button onclick="applica()">Applica i suggeriti ai giorni selezionati</button>
+<button class="sec" onclick="applica(true)">Applica i prezzi scritti</button><button class="sec" onclick="listino()">Torna al listino (selezionati)</button>
+<span class="sp"></span><span class="mute">Prezzo camera per le persone comprese, IVA inclusa · in <b>verde</b> dove conviene alzare, in <b>rosso</b> abbassare</span></div>
+<div class="scroll"><table class="dp" id="dp">
+<tr><th><input type="checkbox" onclick="document.querySelectorAll('.sel').forEach(c=>c.checked=this.checked)" title="Seleziona tutti"></th><th>Notte</th><th>Venduto</th><th>Prevista</th><th class="num" title="Camere vendute negli ultimi 7 giorni">Pickup</th><th class="num">ADR</th><th class="num" title="Cancellazioni attese · overbooking suggerito">Canc./OB</th>
+{% for t in g.tipi %}<th class="num" colspan="2" title="{{ t.nome }}: {{ t.camere }} camere, soglia {{ t.soglia|euro }}">{{ t.codice }}<br><span style="font-weight:400">attuale · nuovo</span></th>{% endfor %}</tr>
+{% for r in g.righe %}<tr class="{{ 'we' if r.giorno in (4, 5) }}" data-data="{{ r.data }}">
+<td>{% if r.lead >= 0 %}<input type="checkbox" class="sel">{% endif %}</td>
+<td style="white-space:nowrap">{{ GIORNI[r.giorno] }} {{ r.data[8:10] }}/{{ r.data[5:7] }}{% for e in r.eventi %}<div class="ev">★ {{ e }}</div>{% endfor %}{% if r.coeff != 1 %}<div class="mute" style="font-size:11px">stagione ×{{ r.coeff }}</div>{% endif %}</td>
+<td class="occ">{{ r.venduto }}/{{ r.camere }}<div class="barretta"><i style="width:{{ (r.occ * 100)|round }}%"></i></div></td>
+<td class="num {{ 'critico' if r.previsione >= 0.95 else 'attenzione' if r.previsione < 0.5 else '' }}"><b>{{ (r.previsione * 100)|round|int }}%</b></td>
+<td class="num">{{ r.pickup or '' }}</td><td class="num">{{ r.adr|euro }}</td>
+<td class="num">{{ r.cancellazioni_attese|round(1) if r.cancellazioni_attese else '' }}{% if r.overbooking %} · <b title="camere vendibili in overbooking">+{{ r.overbooking }}</b>{% endif %}</td>
+{% for c in r.celle %}<td class="num" title="{{ c.venduto }}/{{ c.camere }} vendute · prevista {{ (c.previsione*100)|round|int }}% · listino di stagione {{ c.listino }} € · soglia {{ c.soglia }} €">{{ c.prezzo|euro }}{% if c.origine == 'dynaprice' %}<sup title="prezzo deciso con DynaPrice">D</sup>{% elif c.origine == 'manuale' %}<sup>M</sup>{% endif %}</td>
+<td class="prezzo">{% if r.lead >= 0 %}<input data-tipo="{{ c.tipo_id }}" data-sugg="{{ c.suggerito }}" value="{{ c.suggerito }}" class="{{ 'su' if c.scarto > 2 else 'giu' if c.scarto < -2 else '' }}">{% endif %}</td>{% endfor %}
+</tr>{% endfor %}</table></div></div>
+
+<div class="due" style="grid-template-columns:1fr 1.4fr"><div>
+<div class="card"><h3>Simulatore dei canali</h3>
+<p class="mute">Fa arrivare le richieste di una o due settimane da portali, sito e telefono ai prezzi in vigore. Con prezzi alti alcune richieste si perdono; il risultato si vede subito in tabella e in Controllo.</p>
+<form method="post" action="/revenue/simula" class="bar"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="da" value="{{ da }}">
+<select name="giorni"><option value="7">7 giorni</option><option value="14">14 giorni</option><option value="3">3 giorni</option></select><button>Simula le vendite</button></form></div>
+{% if ai %}<div class="card"><h3>Il parere del revenue manager (AI)</h3><button class="sec" onclick="commento()">Commenta i prossimi 28 giorni</button><div id="commento" class="spiega" style="margin-top:8px;white-space:pre-wrap"></div></div>{% endif %}
+</div>
+<div class="card spiega"><h3>Come ragiona DynaPrice</h3>
+<p><b>Previsione</b> = venduto + domanda ancora attesa. La domanda attesa è l'occupazione media dello stesso giorno della settimana nelle ultime 8 settimane, aumentata dagli eventi, per la quota che a quella distanza dall'arrivo deve ancora arrivare:</p>
+<table>{% for gg, q in curva[1:6] %}<tr><td>a {{ gg }} giorni dall'arrivo</td><td class="num">già prenotato il {{ (q*100)|round|int }}%</td></tr>{% endfor %}</table>
+<p><b>Suggerito</b> = listino × stagione × moltiplicatore dell'occupazione prevista ({% for o, m in scala[1:7] %}{{ (o*100)|round|int }}% → ×{{ m }}{{ ', ' if not loop.last }}{% endfor %}), mai sotto la <b>soglia</b>.</p>
+<p><b>Soglia</b>: il prezzo che, tolta l'IVA ({{ g.iva|round|int }}%) e la commissione del canale più caro, copre il costo della camera venduta lasciando il {{ g.margine_minimo|round|int }}% del netto:<br><code>soglia = costo camera ÷ ((1 − margine) ÷ (1 + IVA) − commissione)</code></p>
+<table>{% for t in g.tipi %}<tr><td>{{ t.nome }}</td><td class="num">costo {{ t.costo_variabile|euro }}</td><td class="num"><b>soglia {{ t.soglia|euro }}</b></td></tr>{% endfor %}</table>
+<p><b>Overbooking</b>: per ogni notte si sommano le probabilità di cancellazione delle prenotazioni; si suggerisce di vendere in più il 70% delle cancellazioni attese, fino al massimo impostato in Struttura.</p>
+</div></div>
+{% endblock %}
+{% block script %}<script>
+function righeSel() { return [...document.querySelectorAll('#dp tr[data-data]')].filter(tr => { const c = tr.querySelector('.sel'); return c && c.checked; }); }
+async function applica(scritti) {
+  const prezzi = [];
+  for (const tr of righeSel()) for (const i of tr.querySelectorAll('input[data-tipo]')) prezzi.push({tipo_id: +i.dataset.tipo, data: tr.dataset.data, prezzo: +(scritti ? i.value : i.dataset.sugg).replace(',', '.')});
+  if (!prezzi.length) return toast('Seleziona almeno un giorno (casella a sinistra)');
+  const r = await api('POST', '/api/revenue/applica', {prezzi});
+  if (!r.ok) return toast(r.errore);
+  toast(`Applicati ${r.dati.applicati} prezzi`); await tutorDopoModifica(); setTimeout(() => location.reload(), 500);
+}
+async function listino() {
+  const s = righeSel(); if (!s.length) return toast('Seleziona almeno un giorno');
+  const r = await api('POST', '/api/revenue/listino', {da: s[0].dataset.data, a: s[s.length - 1].dataset.data});
+  if (!r.ok) return toast(r.errore); location.reload();
+}
+async function commento() {
+  const el = document.getElementById('commento'); el.textContent = 'Sto analizzando i dati…';
+  const r = await api('POST', '/api/revenue/commento', {}); el.textContent = r.ok ? r.dati.testo : r.errore;
+}
+</script>{% endblock %}

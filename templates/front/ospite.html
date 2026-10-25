@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block titolo %}{{ o.nominativo }} — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">{{ o.nominativo }}</h1><span class="sp"></span><a class="btn" href="/prenotazioni/nuova?ospite_id={{ o.id }}">+ Nuova prenotazione</a></div>
+<div class="due"><div class="card">
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="form-griglia">
+{% for k, et in [('cognome','Cognome'),('nome','Nome'),('email','Email'),('telefono','Telefono'),('lingua','Lingua'),('paese','Paese'),('sesso','Sesso (M/F)'),('luogo_nascita','Luogo di nascita'),('provincia_nascita','Provincia'),('stato_nascita','Stato di nascita'),('cittadinanza','Cittadinanza'),('tipo_documento','Documento'),('numero_documento','Numero documento'),('luogo_rilascio','Rilasciato a')] %}
+<div><label>{{ et }}</label><input name="{{ k }}" value="{{ o[k] or '' }}"></div>{% endfor %}
+<div><label>Data di nascita</label><input type="date" name="data_nascita" value="{{ o.data_nascita or '' }}"></div></div>
+<label>Note e preferenze (cuscino, allergie dichiarate, camera preferita…)</label><textarea name="note" rows="3" style="width:100%">{{ o.note }}</textarea>
+<label class="in"><input type="checkbox" name="consenso_marketing" value="1" {{ 'checked' if o.consenso_marketing }}> Consenso a ricevere offerte{% if o.consenso_il %} <span class="mute">(dal {{ o.consenso_il|dt }})</span>{% endif %}</label>
+<div class="riga-az"><button>Salva</button></div></form>
+<form method="post" onsubmit="return confirm('Cancellare i dati personali di questo ospite? Le prenotazioni restano anonime.')" style="margin-top:14px"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="anonimizza">
+<button class="sec mini">Diritto all'oblio (GDPR): anonimizza</button></form></div>
+<div class="card"><h3>Soggiorni</h3><table><tr><th>Arrivo</th><th>Notti</th><th>Stato</th><th class="num">Importo</th></tr>
+{% for p in storico %}<tr><td><a href="/prenotazioni/{{ p.id }}">{{ p.arrivo|dt }}</a></td><td>{{ p.notti }}</td><td><span class="st st-{{ p.stato }}">{{ STATI[p.stato] }}</span></td><td class="num">{{ p.importo|euro(2) }}</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

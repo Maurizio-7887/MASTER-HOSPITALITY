@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block titolo %}Ospiti — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Ospiti</h1><span class="sp"></span>
+<form method="get" class="bar" style="margin:0"><input name="q" value="{{ q }}" placeholder="cognome, nome o email"><button>Cerca</button></form>
+<a class="btn sec" href="/ospiti/marketing.csv" title="Solo chi ha dato il consenso">Esporta per newsletter (CSV)</a></div>
+<div class="scroll"><table><tr><th>Ospite</th><th>Contatti</th><th>Paese</th><th class="num">Soggiorni</th><th class="num">Spesa</th><th>Marketing</th></tr>
+{% for o in righe %}<tr><td><a href="/ospiti/{{ o.id }}"><b>{{ o.nominativo }}</b></a></td><td class="mute">{{ o.email }}<br>{{ o.telefono }}</td><td>{{ o.paese }}</td>
+<td class="num">{{ soggiorni.get(o.id, 0) }}{% if soggiorni.get(o.id, 0) > 1 %} <span class="chip">abituale</span>{% endif %}</td><td class="num">{{ spesa.get(o.id)|euro }}</td><td>{{ '✓' if o.consenso_marketing else '' }}</td></tr>
+{% else %}<tr><td colspan="6" class="mute">Nessun ospite.</td></tr>{% endfor %}</table></div>
+{% if righe|length >= 300 %}<p class="mute">Mostrati i primi 300: usa la ricerca.</p>{% endif %}
+{% endblock %}

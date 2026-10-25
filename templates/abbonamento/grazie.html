@@ -1,0 +1,18 @@
+{% extends 'abbonamento/_base.html' %}
+{% block titolo %}Benvenuto in MASTER HOSPITALITY{% endblock %}
+{% block contenuto %}
+<div class="login" style="max-width:520px;text-align:center">
+{% if spazio %}
+  <div style="font-size:52px;color:var(--ok)">✓</div>
+  <h1>Il tuo spazio è pronto</h1>
+  <p><b>{{ spazio.nome }}</b></p>
+  <p>Accedi con il nome utente <b>{{ username }}</b> e la password che hai scelto.</p>
+  <p><a class="btn" href="/login">Accedi a MASTER HOSPITALITY</a></p>
+  <p class="mute">Dalla pagina Utenti crei gli accessi per reception e governante e gestisci l'abbonamento (carta, fatture, disdetta).</p>
+{% else %}
+  <h1>Attivazione</h1>
+  <div class="banner">{{ errore }}</div>
+  <p><a href="mailto:info@mauriziogustinicchiconsulting.it">info@mauriziogustinicchiconsulting.it</a></p>
+{% endif %}
+</div>
+{% endblock %}

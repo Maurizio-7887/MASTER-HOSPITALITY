@@ -1,0 +1,118 @@
+{% extends 'base.html' %}{% block titolo %}{{ p.codice }} {{ p.ospite.nominativo }} — Master Hospitality{% endblock %}{% block corpo %}
+{% macro azione(nome, testo, classe='', conferma='') %}<form method="post" style="display:inline" {% if conferma %}onsubmit="return confirm('{{ conferma }}')"{% endif %}><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="{{ nome }}"><button class="{{ classe }}">{{ testo }}</button></form>{% endmacro %}
+<div class="bar"><h1 style="margin:0">{{ p.ospite.nominativo }} <span class="st st-{{ p.stato }}">{{ STATI[p.stato] }}</span></h1><span class="sp"></span>
+<span class="mute">{{ p.codice }} · prenotata il {{ p.creato_il.strftime('%d/%m/%Y %H:%M') }}</span></div>
+
+<div class="card"><div class="bar" style="margin:0;gap:18px">
+  <div><span class="mute">Arrivo</span><br><b>{{ p.arrivo|dt }}</b></div><div><span class="mute">Partenza</span><br><b>{{ p.partenza|dt }}</b></div>
+  <div><span class="mute">Notti</span><br><b>{{ p.notti }}</b></div><div><span class="mute">Persone</span><br><b>{{ p.adulti }} ad.{% if p.bambini %} + {{ p.bambini }} bamb.{% endif %}</b></div>
+  <div><span class="mute">Camera</span><br>{% if p.camera %}<span class="cam">{{ p.camera.numero }}</span>{% else %}<b class="critico">da assegnare</b>{% endif %} {{ p.tipo.nome }}</div>
+  <div><span class="mute">Piano</span><br><b>{{ p.piano.nome }}</b></div><div><span class="mute">Canale</span><br><b>{{ p.canale.nome }}</b></div>
+  <div><span class="mute">Soggiorno</span><br><b>{{ p.importo|euro(2) }}</b></div>
+  {% if p.opzione_fino %}<div><span class="mute">Opzione fino al</span><br><b class="attenzione">{{ p.opzione_fino|dt }}</b></div>{% endif %}
+  {% if rischio %}<div title="{{ rischio[1]|join(' · ') }}"><span class="mute">Rischio cancellazione</span><br><b class="{{ 'critico' if rischio[0] > 0.25 else 'attenzione' if rischio[0] > 0.15 else 'ok' }}">{{ rischio[0]|pct }}</b></div>{% endif %}
+</div>
+<div class="riga-az">
+  {% if p.stato in ('preventivo', 'opzione') %}{{ azione('conferma', 'Conferma', 'verde') }}{% endif %}
+  {% if p.stato == 'confermata' %}<a class="btn verde" href="#alloggiati">Check-in…</a>{% endif %}
+  {% if p.stato == 'in_casa' %}<a class="btn verde" href="#conto">Conto e check-out…</a>{% endif %}
+  {% if p.stato in ('preventivo', 'opzione', 'confermata') %}<button class="sec" onclick="document.getElementById('modifica').open=true;document.getElementById('modifica').scrollIntoView()">Modifica date e camera</button>
+  <form method="post" style="display:inline" onsubmit="return confirm('Cancellare la prenotazione?')"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="cancella">
+  {% if p.stato == 'confermata' %}<label class="in" style="margin:0">penale € <input name="penale" value="{{ '%.2f'|format(penale) }}" style="width:80px"></label>{% endif %}<button class="rosso">Cancella</button></form>{% endif %}
+  {% if p.stato == 'confermata' and p.arrivo <= oggi_d %}{{ azione('no_show', 'No show', 'rosso sec', 'Registrare il mancato arrivo con penale?') }}{% endif %}
+  <a class="btn sec" href="/prenotazioni/{{ p.id }}/conto" target="_blank">Stampa conto</a>
+  <a class="btn sec" href="/prenotazioni/{{ p.id }}/conferma-email" target="_blank">Testo di conferma</a>
+  <a class="btn sec" href="/planner?da={{ p.arrivo }}">Nel planner</a>
+  <a class="btn sec" href="/ospiti/{{ p.ospite.id }}">Scheda ospite</a>
+</div>
+<p class="mute" style="margin:8px 0 0">{{ condizioni }}{% if p.caparra %} Caparra richiesta: {{ p.caparra|euro(2) }}.{% endif %}{% if p.penale %} <b>Penale trattenuta: {{ p.penale|euro(2) }}</b>.{% endif %}</p>
+</div>
+
+<div class="due"><div>
+<div class="card" id="conto"><h3>Conto</h3>
+<table><tr><th>Data</th><th>Descrizione</th><th class="num">Q.tà</th><th class="num">Prezzo</th><th class="num">Totale</th><th class="num">IVA</th><th></th></tr>
+{% for r in c.righe %}<tr><td>{{ r.data[8:10] }}/{{ r.data[5:7] }}</td><td>{{ r.descrizione }}</td><td class="num">{{ r.quantita|round(1) }}</td><td class="num">{{ r.prezzo|euro(2) }}</td><td class="num">{{ r.totale|euro(2) }}</td><td class="num mute">{{ r.iva|round|int }}%</td>
+<td>{% if r.id %}<form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="elimina_addebito"><input type="hidden" name="id" value="{{ r.id }}"><input type="hidden" name="ancora" value="#conto"><button class="sec mini" title="Elimina">✕</button></form>{% endif %}</td></tr>{% endfor %}
+{% if c.tassa.totale %}<tr><td></td><td>Imposta di soggiorno: {{ c.tassa.persone }} pers. × {{ c.tassa.notti }} notti × {{ c.tassa.importo|euro(2) }} <span class="mute">(fuori campo IVA)</span></td><td></td><td></td><td class="num">{{ c.tassa.totale|euro(2) }}</td><td></td><td></td></tr>{% endif %}
+<tr class="tot"><td></td><td>Totale</td><td></td><td></td><td class="num">{{ c.totale|euro(2) }}</td><td class="num mute" title="IVA compresa">{{ c.iva|euro(2) }}</td><td></td></tr>
+{% for x in p.pagamenti %}<tr><td>{{ x.data.strftime('%d/%m') }}</td><td>{{ 'Rimborso' if x.importo < 0 else 'Pagamento' }} · {{ METODI.get(x.metodo, x.metodo) }}{% if x.nota %} · {{ x.nota }}{% endif %}</td><td></td><td></td><td class="num">{{ (-x.importo)|euro(2) }}</td><td></td><td></td></tr>{% endfor %}
+<tr class="tot"><td></td><td>{{ 'Da saldare' if c.saldo > 0.009 else 'Da rimborsare' if c.saldo < -0.009 else 'Saldato' }}</td><td></td><td></td><td class="num {{ 'critico' if c.saldo > 0.009 else 'ok' }}">{{ c.saldo|euro(2) }}</td><td></td><td></td></tr>
+</table>
+{% if p.stato in ('confermata', 'in_casa', 'partita') %}
+<details style="margin-top:10px"><summary><b>+ Addebita un extra</b></summary>
+<form method="post" class="form-griglia"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="addebito"><input type="hidden" name="ancora" value="#conto">
+<div><label>Reparto</label><select name="reparto">{% for k, v in REP_ADDEBITO.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+<div class="largo"><label>Descrizione</label><input name="descrizione" placeholder="es. Cena, Minibar, Parcheggio" style="width:100%"></div>
+<div><label>Quantità</label><input name="quantita" value="1" style="width:70px"></div><div><label>Prezzo unitario €</label><input name="prezzo" required style="width:90px"></div>
+<div><label>IVA %</label><select name="iva"><option>10</option><option>22</option><option>4</option><option value="0">0 (esente)</option></select></div>
+<div><label>Costo unitario €</label><input name="costo" value="0" style="width:80px" title="Serve per il margine nel controllo di gestione"></div>
+<div><button>Addebita</button></div></form></details>
+<details style="margin-top:6px" {{ 'open' if p.stato == 'in_casa' and c.saldo > 0.009 }}><summary><b>+ Registra un pagamento</b></summary>
+<form method="post" class="form-griglia"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="pagamento"><input type="hidden" name="ancora" value="#conto">
+<div><label>Importo €</label><input name="importo" value="{{ '%.2f'|format(c.saldo) if c.saldo > 0 else '' }}" required style="width:100px"></div>
+<div><label>Metodo</label><select name="metodo">{% for k, v in METODI.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+<div class="largo"><label>Nota</label><input name="nota" style="width:100%"></div><label class="in"><input type="checkbox" name="rimborso" value="1"> è un rimborso</label>
+<div><button>Registra</button></div></form></details>
+{% endif %}
+{% if p.stato == 'in_casa' %}<div class="riga-az">
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="check_out"><button class="verde">Check-out</button>
+{% if utente.ruolo == 'admin' and c.saldo > 0.009 %}<label class="in"><input type="checkbox" name="forza" value="1"> esci anche con saldo aperto (fattura differita)</label>{% endif %}</form></div>{% endif %}
+</div>
+
+<div class="card" id="alloggiati"><h3>Alloggiati ({{ p.alloggiati|length }} di {{ p.persone }})</h3>
+<p class="mute">Dati per la comunicazione alla Questura (Alloggiati Web, entro 24 ore dall'arrivo) e per l'imposta di soggiorno. Comune, Stato e documento si indicano con i codici delle tabelle ufficiali al momento dell'invio.</p>
+{% if p.alloggiati %}<table><tr><th>Tipo</th><th>Cognome e nome</th><th>Nascita</th><th>Cittadinanza</th><th>Documento</th><th></th></tr>
+{% for a in p.alloggiati %}<tr><td class="mute">{{ {'16':'Ospite singolo','17':'Capofamiglia','18':'Capogruppo','19':'Familiare','20':'Membro gruppo'}.get(a.tipo, a.tipo) }}</td>
+<td><b>{{ a.cognome }} {{ a.nome }}</b>{% if a.esente_tassa %} <span class="chip">esente imposta</span>{% endif %}</td><td>{{ a.data_nascita|dt }} {{ a.luogo_nascita }}</td><td>{{ a.cittadinanza }}</td>
+<td>{{ a.tipo_documento }} {{ a.numero_documento }}</td><td><form method="post" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="elimina_alloggiato"><input type="hidden" name="id" value="{{ a.id }}"><input type="hidden" name="ancora" value="#alloggiati"><button class="sec mini">✕</button></form></td></tr>{% endfor %}</table>{% endif %}
+{% if p.stato in ('confermata', 'in_casa') and p.alloggiati|length < p.persone %}
+{% if not p.alloggiati %}<form method="post" style="margin:8px 0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="alloggiato_da_ospite"><input type="hidden" name="ancora" value="#alloggiati"><button class="sec mini">Copia i dati dell'intestatario</button></form>{% endif %}
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="alloggiato"><input type="hidden" name="ancora" value="#alloggiati">
+<div class="form-griglia">
+<div><label>Tipo</label><select name="tipo"><option value="">automatico</option><option value="16">Ospite singolo</option><option value="17">Capofamiglia</option><option value="18">Capogruppo</option><option value="19">Familiare</option><option value="20">Membro gruppo</option></select></div>
+<div><label>Cognome</label><input name="cognome" required value="{{ p.ospite.cognome if not p.alloggiati else '' }}"></div><div><label>Nome</label><input name="nome" required value="{{ p.ospite.nome if not p.alloggiati else '' }}"></div>
+<div><label>Sesso</label><select name="sesso"><option value="">—</option><option>M</option><option>F</option></select></div>
+<div><label>Data di nascita</label><input type="date" name="data_nascita"></div><div><label>Luogo di nascita</label><input name="luogo_nascita"></div>
+<div><label>Provincia</label><input name="provincia_nascita" maxlength="2" style="width:60px"></div><div><label>Stato di nascita</label><input name="stato_nascita"></div>
+<div><label>Cittadinanza</label><input name="cittadinanza"></div>
+<div><label>Documento</label><select name="tipo_documento"><option value="">— (familiari e membri gruppo)</option><option>Carta d'identità</option><option>Passaporto</option><option>Patente</option></select></div>
+<div><label>Numero documento</label><input name="numero_documento"></div><div><label>Rilasciato a</label><input name="luogo_rilascio"></div>
+<div class="largo"><label class="in"><input type="checkbox" name="esente_tassa" value="1"> Esente dall'imposta di soggiorno</label><input name="motivo_esenzione" placeholder="motivo (es. autista, accompagnatore di malato)"></div>
+{% if not p.alloggiati %}<div class="largo"><label class="in"><input type="checkbox" name="aggiorna_ospite" value="1" checked> salva i dati anche nella scheda ospite</label></div>{% endif %}
+<div><button>Aggiungi alloggiato</button></div></div></form>
+{% endif %}
+{% if p.stato == 'confermata' %}<div class="riga-az">
+{% if not p.camera %}<span class="critico">Assegna una camera prima del check-in.</span>{% endif %}
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="check_in"><button class="verde" {{ 'disabled' if p.arrivo > oggi_d }}>Check-in{% if p.camera %} in camera {{ p.camera.numero }}{% endif %}</button></form>
+{% if p.arrivo > oggi_d %}<span class="mute">Il check-in si fa dal giorno di arrivo.</span>{% endif %}</div>{% endif %}
+</div>
+</div>
+
+<div>
+{% if p.stato in ('preventivo', 'opzione', 'confermata', 'in_casa') %}
+<div class="card"><h3>Camera</h3>
+<form method="post" class="bar" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="camera">
+<select name="camera_id"><option value="">prima libera della tipologia</option>{% for cam in libere %}<option value="{{ cam.id }}" {{ 'selected' if cam.id == p.camera_id }}>{{ cam.numero }} · {{ cam.tipo.nome }} · {{ cam.stato.replace('_', ' ') }}</option>{% endfor %}</select>
+<button class="sec">Assegna</button></form>
+<p class="mute" style="margin:6px 0 0">Sono elencate le camere libere per tutto il soggiorno. Su un'altra tipologia è un upgrade: il prezzo resta quello venduto.</p></div>
+{% endif %}
+{% if p.stato in ('preventivo', 'opzione', 'confermata') %}
+<details class="card" id="modifica"><summary><b>Modifica date, persone, tipologia o piano</b></summary>
+<form method="post" class="form-griglia"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="modifica">
+<div><label>Arrivo</label><input type="date" name="arrivo" value="{{ p.arrivo }}"></div><div><label>Partenza</label><input type="date" name="partenza" value="{{ p.partenza }}"></div>
+<div><label>Adulti</label><input type="number" name="adulti" value="{{ p.adulti }}" min="1"></div><div><label>Bambini</label><input type="number" name="bambini" value="{{ p.bambini }}" min="0"></div>
+<div class="largo"><label>Tipologia</label><select name="tipo_id">{% for t in tipi %}<option value="{{ t.id }}" {{ 'selected' if t.id == p.tipo_id }}>{{ t.nome }}</option>{% endfor %}</select></div>
+<div class="largo"><label>Piano</label><select name="piano_id">{% for x in piani %}<option value="{{ x.id }}" {{ 'selected' if x.id == p.piano_id }}>{{ x.nome }}</option>{% endfor %}</select></div>
+<div><button>Ricalcola e salva</button></div></form>
+<p class="mute">Il prezzo viene ricalcolato con le tariffe di oggi.</p></details>
+{% endif %}
+<div class="card"><h3>Notti vendute</h3>
+<table>{% for n in p.notti_vendute %}<tr><td>{{ n.data|dt }} <span class="mute">{{ ['lun','mar','mer','gio','ven','sab','dom'][n.data.weekday()] }}</span></td><td class="num">{{ n.prezzo|euro(2) }}</td><td class="num mute">{% if n.colazione %}colaz. {{ n.colazione|euro(2) }}{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="card"><h3>Note e riferimenti</h3>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="note">
+<label>Canale</label><select name="canale_id">{% for x in canali %}<option value="{{ x.id }}" {{ 'selected' if x.id == p.canale_id }}>{{ x.nome }}</option>{% endfor %}</select>
+<label>Gruppo</label><input name="gruppo" value="{{ p.gruppo }}" style="width:100%"><label>Riferimento portale</label><input name="rif_canale" value="{{ p.rif_canale }}" style="width:100%">
+<label>Note</label><textarea name="note" rows="3" style="width:100%">{{ p.note }}</textarea><div class="riga-az"><button class="sec">Salva</button></div></form>
+<p class="mute">Ospite: {{ p.ospite.email or 'nessuna email' }} · {{ p.ospite.telefono or 'nessun telefono' }} · {{ p.ospite.paese }}</p></div>
+</div></div>
+{% endblock %}

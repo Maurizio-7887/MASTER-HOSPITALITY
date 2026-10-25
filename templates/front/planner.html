@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block titolo %}Planner — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Planner delle camere</h1><span class="sp"></span>
+<button class="sec" onclick="sposta(-7)">◀ 7 gg</button><button class="sec" onclick="vaiOggi()">Oggi</button><button class="sec" onclick="sposta(7)">7 gg ▶</button>
+<input type="date" id="pl-da" value="{{ da }}" onchange="carica(this.value)">
+<select id="pl-giorni" onchange="carica()"><option value="14">2 settimane</option><option value="21" selected>3 settimane</option><option value="31">1 mese</option><option value="62">2 mesi</option></select>
+<a class="btn" href="/prenotazioni/nuova">+ Nuova</a></div>
+<p class="mute" style="margin-top:-6px">Trascina una barra per cambiare camera o date · clic su una barra per aprire la prenotazione · clic su una casella vuota per prenotare quella camera da quel giorno.
+<span class="pallino s-pulita"></span> pulita <span class="pallino s-sporca"></span> da rifare <span class="pallino s-ispezionata"></span> ispezionata <span class="pallino s-fuori_servizio"></span> fuori servizio · barra rigata = opzione, bordo verde = in casa</p>
+<div class="pl-wrap" id="pl-wrap"><div class="pl" id="pl"></div></div>
+{% endblock %}
+{% block script %}<script src="{{ url_for('static', filename='planner.js') }}"></script>{% endblock %}

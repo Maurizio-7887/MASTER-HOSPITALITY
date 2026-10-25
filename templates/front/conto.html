@@ -1,0 +1,16 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Conto {{ p.codice }}</title>
+<style>body{font:14px/1.45 system-ui,sans-serif;color:#000;margin:30px auto;max-width:760px;padding:0 16px}h1{font-size:20px;margin:0}table{width:100%;border-collapse:collapse;margin-top:14px}
+th,td{border-bottom:1px solid #ccc;padding:5px 6px;text-align:left}td.n,th.n{text-align:right}tr.t td{font-weight:700;border-top:2px solid #000}.m{color:#555;font-size:12px}
+.testa{display:flex;justify-content:space-between;gap:20px}@media print{button{display:none}}</style></head><body>
+<button onclick="window.print()" style="float:right">Stampa / salva PDF</button>
+<div class="testa"><div><h1>{{ struttura.nome_struttura }}</h1><div class="m">{{ struttura.categoria }} · {{ struttura.comune }}</div></div>
+<div style="text-align:right"><b>Riepilogo del conto</b><br>{{ p.codice }}<br>{{ p.ospite.nominativo }}<br>Camera {{ p.camera.numero if p.camera else '—' }}</div></div>
+<p>Soggiorno dal <b>{{ p.arrivo|dt }}</b> al <b>{{ p.partenza|dt }}</b> · {{ p.notti }} notti · {{ p.persone }} persone · {{ p.tipo.nome }} · {{ p.piano.nome }}</p>
+<table><tr><th>Data</th><th>Descrizione</th><th class="n">Q.tà</th><th class="n">Prezzo</th><th class="n">IVA</th><th class="n">Totale</th></tr>
+{% for r in c.righe %}<tr><td>{{ r.data[8:10] }}/{{ r.data[5:7] }}/{{ r.data[:4] }}</td><td>{{ r.descrizione }}</td><td class="n">{{ r.quantita|round(1) }}</td><td class="n">{{ r.prezzo|euro(2) }}</td><td class="n">{{ r.iva|round|int }}%</td><td class="n">{{ r.totale|euro(2) }}</td></tr>{% endfor %}
+{% if c.tassa.totale %}<tr><td></td><td>Imposta di soggiorno ({{ c.tassa.persone }} × {{ c.tassa.notti }} × {{ c.tassa.importo|euro(2) }})</td><td></td><td></td><td class="n">f.c.</td><td class="n">{{ c.tassa.totale|euro(2) }}</td></tr>{% endif %}
+<tr class="t"><td></td><td>Totale</td><td></td><td></td><td></td><td class="n">{{ c.totale|euro(2) }}</td></tr>
+{% for x in p.pagamenti %}<tr><td>{{ x.data|dt }}</td><td>{{ 'Rimborso' if x.importo < 0 else 'Pagato' }} · {{ METODI.get(x.metodo, x.metodo) }}</td><td></td><td></td><td></td><td class="n">{{ (-x.importo)|euro(2) }}</td></tr>{% endfor %}
+<tr class="t"><td></td><td>Saldo</td><td></td><td></td><td></td><td class="n">{{ c.saldo|euro(2) }}</td></tr></table>
+<p class="m">Di cui IVA {{ c.iva|euro(2) }}. Documento riepilogativo non valido ai fini fiscali: la ricevuta o la fattura si emettono con il registratore telematico o il gestionale fiscale.</p>
+</body></html>
