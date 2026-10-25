@@ -1,0 +1,38 @@
+{% extends 'abbonamento/_base.html' %}
+{% block titolo %}Attiva MASTER HOSPITALITY{% endblock %}
+{% block contenuto %}
+<div class="ab">
+  <div class="ab-intro">
+    <h1>MASTER HOSPITALITY in cloud</h1>
+    <p>Il gestionale per hotel, B&amp;B e case vacanza, pronto in un minuto, con i tuoi dati separati da quelli di chiunque altro.</p>
+    <ul>
+      <li>Housekeeping da telefono, CRM ospiti con consensi GDPR, canali e commissioni</li>
+      <li>Prenotazioni, planner delle camere, check-in e check-out, conti, alloggiati e imposta di soggiorno</li>
+      <li>DynaPrice: prezzi dinamici con margine garantito; controllo di gestione con ADR, RevPAR e GOP</li>
+      <li>Utenti illimitati con ruoli; esportazione completa dei dati quando vuoi</li>
+    </ul>
+    {% if prezzo %}<p class="ab-prezzo">{{ prezzo }}</p>{% endif %}
+    {% if attivo %}{% if prova %}<p><b>{{ prova }} giorni di prova gratuita</b>: il primo addebito arriva alla fine della prova.</p>{% endif %}
+    <p class="mute">Disdici quando vuoi dal pannello dell'abbonamento: i dati restano consultabili ed esportabili.</p>
+    {% else %}<p><b>Come funziona:</b> invii la richiesta, ricevi le coordinate per il bonifico con il codice da indicare in causale; appena arriva il pagamento attiviamo il tuo spazio e puoi entrare con le credenziali che scegli qui. Fattura con partita IVA.</p>{% endif %}
+  </div>
+  <form method="post" class="ab-form" autocomplete="on">
+    <h2>{{ 'Attiva il tuo spazio' if attivo else 'Richiedi il tuo spazio' }}</h2>
+    {% if annullato %}<div class="banner">Pagamento annullato: puoi riprovare quando vuoi.</div>{% endif %}
+    {% if errore %}<div class="banner err">{{ errore }}</div>{% endif %}
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label>Ragione sociale</label><input name="ragione_sociale" value="{{ dati.ragione_sociale }}" required>
+    <label>Email (per fatture e comunicazioni)</label><input name="email" type="email" value="{{ dati.email }}" required>
+    <label>Nome e cognome dell'amministratore</label><input name="nome" value="{{ dati.nome }}" required>
+    <label>Telefono (facoltativo)</label><input name="telefono" value="{{ request.form.get('telefono', '') }}" type="tel">
+    <label>Nome utente</label><input name="username" value="{{ dati.username }}" required autocapitalize="none" minlength="3">
+    <label>Password (almeno 8 caratteri)</label><input name="password" type="password" required minlength="8" autocomplete="new-password">
+    <label>Ripeti la password</label><input name="password2" type="password" required minlength="8" autocomplete="new-password">
+    {% if condizioni %}<label class="ab-chk"><input type="checkbox" name="condizioni" required> Ho letto e accetto le <a href="{{ condizioni }}" target="_blank" rel="noopener">condizioni del servizio</a></label>{% endif %}
+    {% if attivo %}<button>Continua con il pagamento sicuro</button>
+    <p class="mute">Il pagamento avviene su Stripe: i dati della carta non passano da questo sito. Fattura con partita IVA.</p>
+    {% else %}<button>Richiedi l'attivazione</button>{% endif %}
+    <p class="mute">Hai già un account? <a href="/login">Accedi</a></p>
+  </form>
+</div>
+{% endblock %}

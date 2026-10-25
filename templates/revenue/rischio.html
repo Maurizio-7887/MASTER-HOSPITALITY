@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% block titolo %}Rischio cancellazioni — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Rischio di cancellazione</h1><span class="sp"></span><a class="btn sec" href="/revenue">‹ DynaPrice</a></div>
+<p class="mute">Probabilità stimata che la prenotazione venga cancellata o che l'ospite non si presenti. Modello a punteggio spiegabile: ogni fattore aggiunge o toglie punti. Usalo per chiedere conferma o caparra a chi è più a rischio e per decidere l'overbooking.</p>
+<table><tr><th>Rischio</th><th>Ospite</th><th>Arrivo</th><th class="num">Notti</th><th>Canale</th><th>Piano</th><th class="num">Importo</th><th>Perché</th></tr>
+{% for x in righe %}{% set p = x.p %}<tr><td><b class="{{ 'critico' if x.rischio > 0.25 else 'attenzione' if x.rischio > 0.15 else 'ok' }}">{{ x.rischio|pct }}</b></td>
+<td><a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }}</a>{% if p.stato == 'opzione' %} <span class="st st-opzione">opzione</span>{% endif %}</td><td>{{ p.arrivo|dt }}</td><td class="num">{{ p.notti }}</td>
+<td class="mute">{{ p.canale.nome }}</td><td class="mute">{{ p.piano.codice }}</td><td class="num">{{ p.importo|euro }}</td><td class="mute" style="font-size:12px">{{ x.motivi[1:]|join(' · ') }}</td></tr>
+{% else %}<tr><td colspan="8" class="mute">Nessuna prenotazione futura.</td></tr>{% endfor %}</table>
+{% endblock %}

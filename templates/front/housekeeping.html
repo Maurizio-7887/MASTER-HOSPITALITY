@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block titolo %}Housekeeping — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Housekeeping</h1><span class="sp"></span>
+<span class="chip"><span class="pallino s-sporca"></span> da rifare {{ conta.sporca }}</span><span class="chip"><span class="pallino s-pulita"></span> pulite {{ conta.pulita }}</span>
+<span class="chip"><span class="pallino s-ispezionata"></span> ispezionate {{ conta.ispezionata }}</span><span class="chip"><span class="pallino s-fuori_servizio"></span> fuori servizio {{ conta.fuori_servizio }}</span></div>
+<p class="mute">Priorità: prima le camere <b>in partenza</b> con un <b>arrivo</b> oggi, poi le altre partenze, poi le fermate. Tocca un pulsante per cambiare lo stato.</p>
+{% for piano, camere in piani.items() %}<h2>Piano {{ piano }}</h2><div class="hk">
+{% for x in camere %}<div class="card {{ x.c.stato }}" id="cam-{{ x.c.id }}">
+<div class="bar" style="margin:0"><span class="num">{{ x.c.numero }}</span><span class="mute">{{ x.c.tipo.codice }}</span><span class="sp"></span><span class="st st-{{ {'partenza':'opzione','fermata':'in_casa','arrivo':'confermata','libera':'partita'}[x.situazione] }}">{{ x.situazione }}</span></div>
+<div class="mute">{{ x.ospite.ospite.nominativo if x.ospite else '' }}{% if x.arrivo and x.situazione == 'partenza' %} · poi arriva {{ x.arrivo.ospite.cognome }}{% endif %}</div>
+<div><b>{{ x.c.stato.replace('_', ' ') }}</b>{% if x.c.note %} <span class="mute">· {{ x.c.note }}</span>{% endif %}</div>
+<div class="az">{% for s, et in [('sporca','Da rifare'),('pulita','Pulita'),('ispezionata','Ispezionata')] %}{% if s != x.c.stato %}<button class="sec" onclick="stato({{ x.c.id }}, '{{ s }}')">{{ et }}</button>{% endif %}{% endfor %}
+{% if utente.ruolo != 'piani' %}<button class="sec" onclick="stato({{ x.c.id }}, '{{ 'pulita' if x.c.stato == 'fuori_servizio' else 'fuori_servizio' }}')">{{ 'Rimetti in uso' if x.c.stato == 'fuori_servizio' else 'Fuori servizio' }}</button>{% endif %}</div>
+</div>{% endfor %}</div>{% endfor %}
+{% endblock %}
+{% block script %}<script>
+async function stato(id, s) { const r = await api('POST', `/api/camere/${id}/stato`, {stato: s}); if (!r.ok) return toast(r.errore); location.reload(); }
+</script>{% endblock %}

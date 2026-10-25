@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block titolo %}Alloggiati — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Alloggiati del {{ d|dt }}</h1><span class="sp"></span>
+<form method="get" class="bar" style="margin:0"><input type="date" name="data" value="{{ d }}"><button class="sec">Mostra</button></form>
+<a class="btn" href="/alloggiati?data={{ d }}&formato=txt">Scarica il file (tracciato Alloggiati Web)</a></div>
+<div class="banner">Il file segue il tracciato a lunghezza fissa del portale Alloggiati Web della Polizia di Stato. Prima dell'invio, comuni, Stati e tipi di documento vanno indicati con i <b>codici delle tabelle ufficiali</b> del portale: controlla il file con la funzione di verifica del portale.</div>
+{% if mancanti %}<div class="banner err">Alloggiati incompleti: {% for p in mancanti %}<a href="/prenotazioni/{{ p.id }}#alloggiati">{{ p.ospite.nominativo }}</a> ({{ p.alloggiati|length }}/{{ p.persone }}){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+<table><tr><th>Camera</th><th>Tipo</th><th>Cognome e nome</th><th>Nascita</th><th>Cittadinanza</th><th>Documento</th><th>Notti</th></tr>
+{% for p in pren %}{% for a in p.alloggiati %}<tr><td><span class="cam">{{ p.camera.numero if p.camera else '' }}</span></td><td>{{ a.tipo }}</td><td><b>{{ a.cognome }} {{ a.nome }}</b></td><td>{{ a.data_nascita|dt }} {{ a.luogo_nascita }} {{ a.provincia_nascita }}</td><td>{{ a.cittadinanza }}</td><td>{{ a.tipo_documento }} {{ a.numero_documento }}</td><td>{{ p.notti }}</td></tr>{% endfor %}
+{% else %}<tr><td colspan="7" class="mute">Nessun check-in in questa data.</td></tr>{% endfor %}</table>
+<p class="mute"><a href="/imposta-soggiorno">Imposta di soggiorno del mese ›</a></p>
+{% endblock %}

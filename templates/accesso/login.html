@@ -1,0 +1,10 @@
+{% extends 'accesso/_pagina.html' %}{% block titolo %}Accesso{% endblock %}{% block corpo %}
+  {% if errore %}<div class="banner err">{{ errore }}</div>{% endif %}
+  <input type="hidden" name="next" value="{{ next or '' }}">
+  <label for="u">Nome utente</label>
+  <input id="u" name="username" autofocus autocomplete="username" autocapitalize="none" style="width:100%" required>
+  <label for="p">Password</label>
+  <input id="p" type="password" name="password" autocomplete="current-password" style="width:100%" required>
+  <p><button type="submit" style="width:100%">Entra</button></p>
+  <p class="mute">Password dimenticata? Chiedi all'amministratore del programma di impostarne una nuova.</p>
+{% endblock %}

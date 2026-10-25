@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titolo %}Master Hospitality{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body{% if corso_attivo %} data-tutor="1"{% endif %}>
+<nav>
+  <span class="logo">MASTER<b>HOSPITALITY</b></span>
+  {% if utente and utente.ruolo == 'piani' %}
+  <a href="/housekeeping" class="{{ 'on' if request.path.startswith('/housekeeping') }}">Housekeeping</a>
+  {% else %}
+  <a href="/oggi" class="{{ 'on' if request.path.startswith('/oggi') }}">Oggi</a>
+  <a href="/planner" class="{{ 'on' if request.path.startswith('/planner') }}">Planner</a>
+  <a href="/prenotazioni" class="{{ 'on' if request.path.startswith('/prenotazioni') }}">Prenotazioni</a>
+  <a href="/ospiti" class="{{ 'on' if request.path.startswith('/ospiti') }}">Ospiti</a>
+  <a href="/housekeeping" class="{{ 'on' if request.path.startswith('/housekeeping') }}">Housekeeping</a>
+  {% if utente and utente.ruolo in ('admin', 'revenue') %}
+  <a href="/revenue" class="{{ 'on' if request.path.startswith('/revenue') }}">DynaPrice</a>
+  <a href="/controllo" class="{{ 'on' if request.path.startswith('/controllo') }}">Controllo</a>
+  <a href="/struttura" class="{{ 'on' if request.path.startswith('/struttura') }}">Struttura</a>
+  {% endif %}
+  {% endif %}
+  <span class="sp"></span>
+  {% if nome_struttura %}<span class="hotel" title="{{ nome_struttura }}">{{ nome_struttura }}</span>{% endif %}
+  {% if corso_attivo %}<a href="#" onclick="apriTutor();return false" title="Tutor del corso">🎓 Tutor</a>{% endif %}
+  {% if utente and utente.gestore %}<a href="/spazi" class="{{ 'on' if request.path.startswith('/spazi') }}">Spazi{% if richieste_attivazione %} <span class="badge-n">{{ richieste_attivazione }}</span>{% endif %}</a>{% endif %}
+  {% if utente and utente.ruolo == 'admin' %}<a href="/utenti" class="{{ 'on' if request.path.startswith('/utenti') }}">Utenti</a>{% endif %}
+  {% if utente %}<a href="/password" title="Cambia password">{{ utente.nome }}</a><a href="/logout">Esci</a>{% endif %}
+</nav>
+{% if fuori_spazio %}<div class="fuori">Stai lavorando nello spazio <b>{{ spazio.nome }}</b> per assistenza · <a href="/spazi/torna">torna al tuo spazio</a></div>{% endif %}
+<main>
+{% if avviso_spazio %}<div class="banner {{ avviso_spazio[0] }}">{{ avviso_spazio[1] }}</div>{% endif %}
+{% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}<div class="banner {{ 'err' if cat == 'err' else 'ok' if cat == 'ok' else '' }}">{{ m }}</div>{% endfor %}{% endwith %}
+{% block corpo %}{% endblock %}
+</main>
+<aside id="tutor"></aside>
+<div id="toast"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% if corso_attivo %}<script src="{{ url_for('static', filename='tutor.js') }}"></script>{% endif %}
+{% block script %}{% endblock %}
+</body>
+</html>

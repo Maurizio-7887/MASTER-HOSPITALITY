@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block titolo %}Imposta di soggiorno — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Imposta di soggiorno · {{ comune }}</h1><span class="sp"></span>
+<form method="get" class="bar" style="margin:0"><input type="month" name="mese" value="{{ mese }}"><button class="sec">Mostra</button></form><button class="sec" onclick="print()">Stampa</button></div>
+<p class="mute">Soggiorni terminati nel mese. Regole impostate in Struttura: {{ importo|euro(2) }} a persona per notte, massimo {{ max_notti }} notti consecutive, esenti fino a {{ eta }} anni e chi è segnato esente negli alloggiati. Verifica tariffe ed esenzioni vigenti sul regolamento del tuo Comune.</p>
+<div class="kpi"><div class="card"><span>Presenze (arrivi × persone)</span><b>{{ tot.persone }}</b></div><div class="card"><span>Pernottamenti</span><b>{{ tot.pernottamenti }}</b></div>
+<div class="card"><span>Pernottamenti tassati</span><b>{{ tot.tassati }}</b></div><div class="card"><span>Persone esenti</span><b>{{ tot.esenti }}</b></div><div class="card"><span>Imposta da versare</span><b>{{ tot.importo|euro(2) }}</b></div></div>
+<table><tr><th>Codice</th><th>Ospite</th><th>Dal</th><th>Al</th><th class="num">Persone</th><th class="num">Tassati</th><th class="num">Notti tassate</th><th class="num">Imposta</th></tr>
+{% for r in righe %}<tr><td><a href="/prenotazioni/{{ r.p.id }}">{{ r.p.codice }}</a></td><td>{{ r.p.ospite.nominativo }}</td><td>{{ r.p.arrivo|dt }}</td><td>{{ r.p.partenza|dt }}</td><td class="num">{{ r.persone }}</td><td class="num">{{ r.t.persone }}</td><td class="num">{{ r.t.notti }}</td><td class="num">{{ r.t.totale|euro(2) }}</td></tr>
+{% else %}<tr><td colspan="8" class="mute">Nessun soggiorno.</td></tr>{% endfor %}</table>
+{% endblock %}

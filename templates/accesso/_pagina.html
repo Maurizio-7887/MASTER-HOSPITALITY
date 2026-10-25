@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titolo %}Accesso{% endblock %} — Master Hospitality</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body class="pag-accesso">
+<form class="login card" method="post">
+  <h1>MASTER<span style="color:#e8a317">HOSPITALITY</span></h1>
+  {% block corpo %}{% endblock %}
+</form>
+</body></html>

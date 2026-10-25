@@ -1,0 +1,21 @@
+Oggetto: Conferma prenotazione {{ p.codice }} — {{ nome }}
+
+Gentile {{ p.ospite.nome or '' }} {{ p.ospite.cognome }},
+
+la ringraziamo per aver scelto {{ nome }}. Le confermiamo la prenotazione:
+
+Codice: {{ p.codice }}
+Arrivo: {{ p.arrivo.strftime('%d/%m/%Y') }} (check-in dalle {{ ci }})
+Partenza: {{ p.partenza.strftime('%d/%m/%Y') }} (check-out entro le {{ co }})
+Camera: {{ p.tipo.nome }} — {{ p.adulti }} adulti{% if p.bambini %} e {{ p.bambini }} bambini{% endif %}
+Trattamento: {{ p.piano.nome }}
+Totale del soggiorno: {{ '%.2f'|format(p.importo) }} € IVA inclusa{% if p.caparra %}
+Caparra: {{ '%.2f'|format(p.caparra) }} €{% endif %}
+
+{{ condizioni }}
+L'imposta di soggiorno ({{ '%.2f'|format(tassa) }} € a persona per notte) si paga in struttura.
+
+Per qualsiasi necessità risponda a questa email.
+
+Cordiali saluti
+{{ nome }}

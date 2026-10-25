@@ -1,0 +1,78 @@
+{% extends 'base.html' %}{% block titolo %}Controllo di gestione — Master Hospitality{% endblock %}{% block corpo %}
+{% set k = r.kpi %}{% set u = r.usali %}
+<div class="bar"><h1 style="margin:0">Controllo di gestione</h1><span class="sp"></span>
+<form method="get" class="bar" style="margin:0" id="per"><label class="in" style="margin:0">dal <input type="date" name="da" value="{{ da }}"></label>
+<label class="in" style="margin:0">al <input type="date" name="a" id="al"></label><button class="sec">Mostra</button>
+<button type="button" class="sec mini" onclick="mese(-1)">mese scorso</button><button type="button" class="sec mini" onclick="mese(0)">mese in corso</button><button type="button" class="sec mini" onclick="anno()">anno</button></form>
+<button class="sec" onclick="print()">Stampa</button></div>
+<p class="mute">{{ k.giorni }} giorni · {{ k.camere }} camere · {{ k.disponibili }} camere-notte disponibili · ricavi al netto dell'IVA</p>
+<div class="kpi">
+  <div class="card"><span>Occupazione</span><b>{{ k.occupazione|pct(1) }}</b><span>{{ k.vendute }} camere vendute</span></div>
+  <div class="card"><span>ADR · prezzo medio</span><b>{{ k.adr|euro(2) }}</b><span>ricavo camere ÷ camere vendute</span></div>
+  <div class="card"><span>RevPAR</span><b>{{ k.revpar|euro(2) }}</b><span>ricavo camere ÷ camere disponibili</span></div>
+  <div class="card"><span>TRevPAR</span><b>{{ k.trevpar|euro(2) }}</b><span>tutti i ricavi ÷ camere disponibili</span></div>
+  <div class="card"><span>GOP</span><b class="{{ 'critico' if k.gop < 0 else 'ok' }}">{{ k.gop|euro }}</b><span>{{ k.gop_pct|pct(1) }} dei ricavi</span></div>
+  <div class="card"><span>GOPPAR</span><b>{{ k.goppar|euro(2) }}</b><span>GOP ÷ camere disponibili</span></div>
+  <div class="card"><span>CPOR</span><b>{{ k.cpor|euro(2) }}</b><span>costo reparto camere per camera venduta</span></div>
+  <div class="card"><span>Commissioni</span><b>{{ k.commissioni|euro }}</b><span>{{ k.commissioni_pct|pct(1) }} dei ricavi di soggiorno</span></div>
+  <div class="card"><span>Durata media</span><b>{{ k.durata_media|round(2) if k.durata_media else '—' }}</b><span>notti · {{ k.cancellate }} cancellazioni e no show</span></div>
+</div>
+
+{% if serie %}<div class="card"><h3>Occupazione e ADR giorno per giorno</h3><svg id="graf" width="100%" height="190" role="img" aria-label="Andamento occupazione e ADR"></svg>
+<p class="mute" style="margin:4px 0 0"><span style="color:var(--acc)">■</span> occupazione · <span style="color:var(--oro)">●</span> ADR</p></div>{% endif %}
+
+<div class="due">
+<div class="card"><h3>Conto economico per reparti (USALI)</h3>
+<table><tr><th></th><th class="num">Ricavi</th><th class="num">Costi diretti</th><th class="num">Utile reparto</th><th class="num">%</th></tr>
+<tr><td>Camere <div class="mute">costo camere vendute {{ u.dettaglio_camere.variabili|euro }} · commissioni {{ u.dettaglio_camere.commissioni|euro }} · personale e fissi {{ u.dettaglio_camere.fissi|euro }}{% if k.penali %} · penali incassate {{ k.penali|euro }}{% endif %}</div></td>
+<td class="num">{{ u.camere.ricavi|euro }}</td><td class="num">{{ u.camere.costi|euro }}</td><td class="num">{{ u.camere.utile|euro }}</td><td class="num">{{ (u.camere.pct or 0)|round|int }}%</td></tr>
+<tr><td>Food &amp; beverage <div class="mute">colazioni, bar, ristorante</div></td><td class="num">{{ u.fb.ricavi|euro }}</td><td class="num">{{ u.fb.costi|euro }}</td><td class="num">{{ u.fb.utile|euro }}</td><td class="num">{{ (u.fb.pct or 0)|round|int }}%</td></tr>
+<tr><td>Altri servizi</td><td class="num">{{ u.altri.ricavi|euro }}</td><td class="num">{{ u.altri.costi|euro }}</td><td class="num">{{ u.altri.utile|euro }}</td><td class="num">{{ (u.altri.pct or 0)|round|int }}%</td></tr>
+<tr class="sub"><td>Totale utile dei reparti</td><td class="num">{{ u.ricavi|euro }}</td><td></td><td class="num">{{ u.reparti_utile|euro }}</td><td></td></tr>
+{% for rep, v in u.non_distribuiti.items() %}<tr><td>− {{ r.reparti[rep] }}</td><td></td><td class="num">{{ v|euro }}</td><td></td><td></td></tr>{% endfor %}
+<tr class="tot"><td>GOP · risultato operativo lordo</td><td></td><td></td><td class="num">{{ u.gop|euro }}</td><td class="num">{{ ((k.gop_pct or 0) * 100)|round|int }}%</td></tr>
+<tr><td>− {{ r.reparti['oneri'] }}</td><td></td><td class="num">{{ u.oneri|euro }}</td><td></td><td></td></tr>
+<tr class="tot"><td>EBITDA</td><td></td><td></td><td class="num {{ 'critico' if u.ebitda < 0 }}">{{ u.ebitda|euro }}</td><td></td></tr></table>
+<p class="mute">Costi fissi mensili ripartiti sui giorni del periodo. Le voci si impostano in <a href="/struttura?sez=costo">Struttura › Costi fissi</a>.</p>
+{% if ai %}<button class="sec" onclick="commento()">Commento del controller (AI)</button><div id="commento" class="spiega" style="margin-top:8px;white-space:pre-wrap"></div>{% endif %}
+</div>
+
+<div class="card"><h3>Margine per canale</h3>
+<div class="scroll"><table><tr><th>Canale</th><th class="num">Notti</th><th class="num">Quota</th><th class="num">ADR</th><th class="num">Commiss.</th><th class="num">Margine</th><th class="num">Per notte</th></tr>
+{% for nome, c in r.canali.items() %}<tr><td><span class="pallino" style="background:{{ c.colore }}"></span> {{ nome }}<div class="mute">commissione {{ c.commissione_pct|round(1) }}%</div></td><td class="num">{{ c.notti }}</td><td class="num">{{ c.quota|pct }}</td>
+<td class="num">{{ c.adr|euro }}</td><td class="num">{{ c.commissione|euro }}</td><td class="num">{{ c.margine|euro }}</td><td class="num"><b>{{ c.margine_notte|euro(2) }}</b></td></tr>{% endfor %}</table></div>
+<p class="mute">Margine di contribuzione = ricavi netti − costo camere vendute − colazioni ed extra − commissioni. Prima dei costi fissi.</p></div>
+</div>
+
+<div class="card"><div class="bar" style="margin:0"><h3 style="margin:0">Margine per prenotazione</h3><span class="sp"></span><a class="btn sec mini" href="#" id="csv">Esporta CSV</a></div>
+<p class="mute">Dalla meno redditizia (per notte). Notti e ricavi del solo periodo scelto.</p>
+<div class="scroll"><table><tr><th>Prenotazione</th><th>Canale</th><th>Piano</th><th class="num">Notti</th><th class="num">Ricavi netti</th><th class="num">Costi variabili</th><th class="num">Commissione</th><th class="num">Margine</th><th class="num">Per notte</th></tr>
+{% for e in r.prenotazioni[:15] %}<tr><td><a href="/prenotazioni/{{ e.p.id }}">{{ e.p.ospite.nominativo }}</a> <span class="mute">{{ e.p.tipo.codice }} · {{ e.p.arrivo|dt }}</span></td><td class="mute">{{ e.p.canale.nome }}</td><td class="mute">{{ e.p.piano.codice }}</td>
+<td class="num">{{ e.notti }}</td><td class="num">{{ e.ricavi|euro(2) }}</td><td class="num">{{ (e.costi_variabili - e.commissione)|euro(2) }}</td><td class="num">{{ e.commissione|euro(2) }}</td><td class="num">{{ e.margine|euro(2) }}</td><td class="num"><b class="{{ 'critico' if (e.margine_notte or 0) < 40 }}">{{ e.margine_notte|euro(2) }}</b></td></tr>{% endfor %}</table></div>
+{% if r.prenotazioni|length > 15 %}<details><summary class="mute">Le più redditizie</summary><table>{% for e in r.prenotazioni[-10:]|reverse %}<tr><td><a href="/prenotazioni/{{ e.p.id }}">{{ e.p.ospite.nominativo }}</a></td><td class="mute">{{ e.p.canale.nome }}</td><td class="num">{{ e.notti }}</td><td class="num">{{ e.margine|euro(2) }}</td><td class="num"><b>{{ e.margine_notte|euro(2) }}</b></td></tr>{% endfor %}</table></details>{% endif %}
+</div>
+{% endblock %}
+{% block script %}<script>
+const AL = new Date('{{ a }}T12:00:00'); AL.setDate(AL.getDate() - 1);
+document.getElementById('al').value = AL.toISOString().slice(0, 10);
+document.getElementById('csv').href = `/controllo/prenotazioni.csv?da={{ da }}&a=${AL.toISOString().slice(0, 10)}`;
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function mese(n) { const o = new Date(); const da = new Date(o.getFullYear(), o.getMonth() + n, 1), a = new Date(o.getFullYear(), o.getMonth() + n + 1, 0); location.href = `/controllo?da=${iso(da)}&a=${iso(a)}`; }
+function anno() { const o = new Date(); location.href = `/controllo?da=${o.getFullYear()}-01-01&a=${o.getFullYear()}-12-31`; }
+async function commento() { const el = document.getElementById('commento'); el.textContent = 'Sto analizzando i dati…';
+  const r = await api('POST', '/api/controllo/commento', {da: '{{ da }}', a: AL.toISOString().slice(0, 10)}); el.textContent = r.ok ? r.dati.testo : r.errore; }
+const S = {{ serie|tojson }};
+const svg = document.getElementById('graf');
+if (svg && S.length) {
+  const w = svg.clientWidth || 800, h = 190, pl = 34, pr = 40, pt = 10, pb = 22, n = S.length, bw = (w - pl - pr) / n;
+  const adrMax = Math.max(...S.map(s => s.adr || 0)) * 1.15 || 1;
+  let g = '';
+  [0, .5, 1].forEach(v => { const y = pt + (1 - v) * (h - pt - pb); g += `<line x1="${pl}" x2="${w - pr}" y1="${y}" y2="${y}" stroke="currentColor" opacity=".12"/><text x="${pl - 4}" y="${y + 4}" font-size="10" text-anchor="end" fill="currentColor" opacity=".6">${v * 100}%</text>`; });
+  S.forEach((s, i) => { const bh = s.occ * (h - pt - pb); g += `<rect x="${pl + i * bw + 1}" y="${h - pb - bh}" width="${Math.max(1, bw - 2)}" height="${bh}" fill="var(--acc)" opacity=".75"><title>${dataIt(s.data)}: ${Math.round(s.occ * 100)}% · ADR ${euro(s.adr)}</title></rect>`;
+    if (n <= 62 && (i % Math.ceil(n / 15) === 0)) g += `<text x="${pl + i * bw + bw / 2}" y="${h - 6}" font-size="10" text-anchor="middle" fill="currentColor" opacity=".6">${s.data.slice(8, 10)}/${s.data.slice(5, 7)}</text>`; });
+  const pts = S.map((s, i) => s.adr ? `${pl + i * bw + bw / 2},${pt + (1 - s.adr / adrMax) * (h - pt - pb)}` : null).filter(Boolean);
+  g += `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--oro)" stroke-width="2"/>`;
+  g += `<text x="${w - pr + 4}" y="${pt + 8}" font-size="10" fill="currentColor" opacity=".6">${euro(adrMax)}</text>`;
+  svg.innerHTML = g; svg.style.color = 'var(--ink)';
+}
+</script>{% endblock %}
