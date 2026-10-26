@@ -44,4 +44,4 @@ class Config:
     SMTP_FROM = os.environ.get('SMTP_FROM', '')
     # AI (concierge e commento ai numeri): stessa chiave Gemini degli altri programmi
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '') or os.environ.get('GOOGLE_API_KEY', '')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', '')   # vuoto: catena gemini-3.8-flash, gemini-flash-latest... poi scoperta automatica
