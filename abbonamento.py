@@ -95,8 +95,12 @@ def invia_email(a, oggetto, testo, rispondi_a=None):
 
 
 def avvisa_gestore(isc):
-    """Email a te (MAIL_AVVISI, di norma info@mauriziogustinicchiconsulting.it) e conferma al cliente con i dati del bonifico."""
+    """Il contatto nel CRM (sempre, via HTTPS), email a te su MAIL_AVVISI e conferma al cliente con i dati del bonifico."""
     c = current_app.config
+    import avviso_crm
+    avviso_crm.avvisa(isc.nome, isc.email, f"Richiesta di attivazione di MASTER HOSPITALITY in cloud — codice {isc.codice}, nome utente {isc.username}"
+                      + (f" — tel. {isc.telefono}" if isc.telefono else ''), fonte='MASTER HOSPITALITY - richiesta di attivazione',
+                      azienda=isc.ragione_sociale, telefono=isc.telefono or '', event_id=f'master-hospitality-{isc.codice}')
     invia_email(c.get('MAIL_AVVISI'), f'MASTER HOSPITALITY: richiesta di attivazione {isc.codice} — {isc.ragione_sociale}', f"""Nuova richiesta di attivazione di MASTER HOSPITALITY
 
 Codice: {isc.codice}
