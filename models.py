@@ -336,3 +336,223 @@ class Alloggiato(PerSpazio, db.Model):
     luogo_rilascio = db.Column(db.String(80), default='')
     esente_tassa = db.Column(db.Boolean, default=False)
     motivo_esenzione = db.Column(db.String(60), default='')
+
+
+# ---------------- channel manager e booking engine ----------------
+
+CONNESSIONI = {'manuale': 'Manuale (aggiorni tu l\'extranet)', 'simulatore': 'Simulatore OTA (corso e prove)',
+               'ical': 'Calendario iCal (Airbnb, Vrbo, Booking per appartamenti)', 'wubook': 'WuBook (API XML-RPC)',
+               'channex': 'Channex (API REST)'}
+
+
+class CanaleTipo(PerSpazio, db.Model):
+    """Mappatura tipologia ↔ camera del portale: allotment (camere messe in vendita) e ricarico sul prezzo (parità)."""
+    __tablename__ = 'canali_tipi'
+    id = db.Column(db.Integer, primary_key=True)
+    canale_id = db.Column(db.Integer, db.ForeignKey('canali.id', ondelete='CASCADE'), nullable=False, index=True)
+    tipo_id = db.Column(db.Integer, db.ForeignKey('tipi_camera.id', ondelete='CASCADE'), nullable=False)
+    codice_ota = db.Column(db.String(40), default='')            # id della camera sul portale
+    allotment = db.Column(db.Integer, nullable=True)              # None = tutta la disponibilità
+    ricarico_pct = db.Column(db.Float, default=0)                 # +15 = prezzo sul portale 15% sopra il prezzo dell'hotel
+    attivo = db.Column(db.Boolean, default=True)
+    canale = db.relationship('Canale')
+    tipo = db.relationship('TipoCamera')
+
+
+class Sincronizzazione(PerSpazio, db.Model):
+    """Registro del channel manager: ogni invio (disponibilità, prezzi, restrizioni) e ogni prenotazione ricevuta."""
+    __tablename__ = 'sincronizzazioni'
+    id = db.Column(db.Integer, primary_key=True)
+    canale_id = db.Column(db.Integer, db.ForeignKey('canali.id', ondelete='CASCADE'), nullable=True, index=True)
+    quando = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    direzione = db.Column(db.String(8), default='uscita')         # uscita | entrata
+    oggetto = db.Column(db.String(20), default='disponibilita')   # disponibilita | tariffe | restrizioni | prenotazione | ical
+    esito = db.Column(db.String(8), default='ok')                 # ok | errore
+    messaggio = db.Column(db.String(300), default='')
+    dati = db.Column(db.Text, default='')
+    canale = db.relationship('Canale')
+
+
+# ---------------- cassa, conti e chiusura ----------------
+
+class Azienda(PerSpazio, db.Model):
+    """Cliente azienda o agenzia: intestatario di fatture e conti a credito (city ledger)."""
+    __tablename__ = 'aziende'
+    id = db.Column(db.Integer, primary_key=True)
+    ragione_sociale = db.Column(db.String(120), nullable=False)
+    partita_iva = db.Column(db.String(20), default='')
+    codice_fiscale = db.Column(db.String(20), default='')
+    codice_sdi = db.Column(db.String(7), default='0000000')
+    pec = db.Column(db.String(120), default='')
+    indirizzo = db.Column(db.String(160), default='')
+    cap = db.Column(db.String(10), default='')
+    comune = db.Column(db.String(80), default='')
+    provincia = db.Column(db.String(4), default='')
+    nazione = db.Column(db.String(2), default='IT')
+    giorni_pagamento = db.Column(db.Integer, default=30)
+    email = db.Column(db.String(120), default='')
+
+
+DOCUMENTI = {'ricevuta': 'Ricevuta fiscale / documento commerciale', 'fattura': 'Fattura elettronica', 'nota_credito': 'Nota di credito'}
+
+
+class Documento(PerSpazio, db.Model):
+    """Documento fiscale emesso: numerazione progressiva per anno e tipo; la fattura ha il suo file XML FatturaPA."""
+    __tablename__ = 'documenti'
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(12), default='ricevuta', nullable=False)
+    anno = db.Column(db.Integer, nullable=False)
+    numero = db.Column(db.Integer, nullable=False)
+    data = db.Column(db.Date, nullable=False, index=True)
+    prenotazione_id = db.Column(db.Integer, db.ForeignKey('prenotazioni.id', ondelete='SET NULL'), nullable=True, index=True)
+    azienda_id = db.Column(db.Integer, db.ForeignKey('aziende.id', ondelete='SET NULL'), nullable=True)
+    intestatario = db.Column(db.String(160), default='')
+    imponibile = db.Column(db.Float, default=0)
+    iva = db.Column(db.Float, default=0)
+    esente = db.Column(db.Float, default=0)                       # imposta di soggiorno (fuori campo IVA)
+    totale = db.Column(db.Float, default=0)
+    righe = db.Column(db.Text, default='[]')                      # JSON: descrizione, quantità, prezzo, aliquota
+    a_credito = db.Column(db.Boolean, default=False)              # da incassare dall'azienda (city ledger)
+    incassato_il = db.Column(db.Date, nullable=True)
+    xml = db.Column(db.Text, default='')
+    creato_il = db.Column(db.DateTime, default=datetime.utcnow)
+    prenotazione = db.relationship('Prenotazione')
+    azienda = db.relationship('Azienda')
+    __table_args__ = (db.UniqueConstraint('spazio_id', 'tipo', 'anno', 'numero', name='uq_documento_numero'),)
+
+    @property
+    def sigla(self):
+        return {'ricevuta': 'R', 'fattura': 'F', 'nota_credito': 'NC'}.get(self.tipo, '') + f'{self.numero}/{self.anno}'
+
+
+class VenditaCassa(PerSpazio, db.Model):
+    """Vendita al punto cassa (bar, ristorante) a un cliente di passaggio, pagata subito."""
+    __tablename__ = 'vendite_cassa'
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.Date, nullable=False, index=True)
+    reparto = db.Column(db.String(12), default='bar')
+    descrizione = db.Column(db.String(120), nullable=False)
+    quantita = db.Column(db.Float, default=1)
+    prezzo = db.Column(db.Float, default=0)
+    iva_pct = db.Column(db.Float, default=10)
+    costo = db.Column(db.Float, default=0)
+    metodo = db.Column(db.String(12), default='contanti')
+    documento_id = db.Column(db.Integer, db.ForeignKey('documenti.id', ondelete='SET NULL'), nullable=True)
+
+    @property
+    def totale(self):
+        return round((self.quantita or 0) * (self.prezzo or 0), 2)
+
+
+class ChiusuraGiorno(PerSpazio, db.Model):
+    """Night audit: la giornata chiusa con i suoi numeri; dopo la chiusura la data di lavoro passa al giorno dopo."""
+    __tablename__ = 'chiusure'
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.Date, nullable=False, index=True)
+    chiusa_il = db.Column(db.DateTime, default=datetime.utcnow)
+    utente = db.Column(db.String(60), default='')
+    camere_vendute = db.Column(db.Integer, default=0)
+    camere_totali = db.Column(db.Integer, default=0)
+    ricavo_camere = db.Column(db.Float, default=0)
+    ricavo_extra = db.Column(db.Float, default=0)
+    incassi = db.Column(db.Text, default='{}')                    # JSON metodo: importo
+    note = db.Column(db.String(500), default='')
+    __table_args__ = (db.UniqueConstraint('spazio_id', 'data', name='uq_chiusura_data'),)
+
+
+# ---------------- revenue: concorrenti ----------------
+
+class TariffaConcorrente(PerSpazio, db.Model):
+    """Rate shopping: prezzo pubblico di un concorrente per una data (inserito a mano o da CSV)."""
+    __tablename__ = 'tariffe_concorrenti'
+    id = db.Column(db.Integer, primary_key=True)
+    concorrente = db.Column(db.String(80), nullable=False)
+    data = db.Column(db.Date, nullable=False, index=True)
+    prezzo = db.Column(db.Float, nullable=False)
+    rilevato_il = db.Column(db.Date, nullable=True)
+
+
+# ---------------- manutenzione e comunicazioni ----------------
+
+PRIORITA = {'bassa': 'Bassa', 'media': 'Media', 'alta': 'Alta', 'urgente': 'Urgente (camera fuori servizio)'}
+STATI_GUASTO = {'aperto': 'Aperto', 'in_corso': 'In lavorazione', 'chiuso': 'Risolto'}
+
+
+class Guasto(PerSpazio, db.Model):
+    __tablename__ = 'guasti'
+    id = db.Column(db.Integer, primary_key=True)
+    camera_id = db.Column(db.Integer, db.ForeignKey('camere.id', ondelete='CASCADE'), nullable=True, index=True)
+    area = db.Column(db.String(60), default='')                   # se non è una camera: hall, cucina, ascensore...
+    descrizione = db.Column(db.String(300), nullable=False)
+    priorita = db.Column(db.String(8), default='media')
+    stato = db.Column(db.String(8), default='aperto', index=True)
+    segnalato_da = db.Column(db.String(60), default='')
+    aperto_il = db.Column(db.DateTime, default=datetime.utcnow)
+    chiuso_il = db.Column(db.DateTime, nullable=True)
+    costo = db.Column(db.Float, default=0)
+    note = db.Column(db.String(300), default='')
+    camera = db.relationship('Camera')
+
+
+EVENTI_EMAIL = {'conferma': 'Conferma della prenotazione', 'pre_arrivo': 'Prima dell\'arrivo (3 giorni)',
+                'post_soggiorno': 'Dopo la partenza (recensione)'}
+
+
+class ModelloEmail(PerSpazio, db.Model):
+    __tablename__ = 'modelli_email'
+    id = db.Column(db.Integer, primary_key=True)
+    evento = db.Column(db.String(16), nullable=False)
+    lingua = db.Column(db.String(2), default='it')
+    oggetto = db.Column(db.String(160), nullable=False)
+    testo = db.Column(db.Text, nullable=False)
+    attivo = db.Column(db.Boolean, default=True)
+
+
+class EmailInviata(PerSpazio, db.Model):
+    __tablename__ = 'email_inviate'
+    id = db.Column(db.Integer, primary_key=True)
+    prenotazione_id = db.Column(db.Integer, db.ForeignKey('prenotazioni.id', ondelete='CASCADE'), nullable=False, index=True)
+    evento = db.Column(db.String(16), nullable=False)
+    destinatario = db.Column(db.String(200), default='')
+    inviata_il = db.Column(db.DateTime, default=datetime.utcnow)
+    esito = db.Column(db.String(8), default='ok')                 # ok | errore | anteprima
+
+
+# colonne nuove su tabelle esistenti (aggiunte da aggiorna_schema anche sui database già in uso)
+Canale.connessione = db.Column(db.String(12), default='manuale')
+Canale.ical_url = db.Column(db.String(400), default='')
+Canale.token = db.Column(db.String(40), default='')
+Canale.codice_struttura = db.Column(db.String(40), default='')
+Canale.ultimo_sync = db.Column(db.DateTime, nullable=True)
+Ospite.provincia_residenza = db.Column(db.String(4), default='')
+Ospite.comune_residenza = db.Column(db.String(80), default='')
+Prenotazione.azienda_id = db.Column(db.Integer, db.ForeignKey('aziende.id', ondelete='SET NULL'), nullable=True)
+Prenotazione.uid_esterno = db.Column(db.String(120), default='')     # UID iCal o id della prenotazione sul portale
+Addebito.conto = db.Column(db.String(8), default='ospite')           # ospite | azienda: conti separati
+Pagamento.chiusura_id = db.Column(db.Integer, nullable=True)
+Prenotazione.azienda = db.relationship('Azienda')
+
+
+def aggiorna_schema():
+    """Aggiunge le colonne nuove alle tabelle esistenti (database già in uso): solo ADD COLUMN, mai modifiche o cancellazioni."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    tabelle = set(insp.get_table_names())
+    with db.engine.begin() as conn:
+        for t in db.metadata.sorted_tables:
+            if t.name not in tabelle:
+                continue
+            esistenti = {c['name'] for c in insp.get_columns(t.name)}
+            for col in t.columns:
+                if col.name in esistenti:
+                    continue
+                tipo = col.type.compile(dialect=db.engine.dialect)
+                default = ''
+                d = col.default.arg if col.default is not None and not callable(col.default.arg) else None
+                if isinstance(d, bool):
+                    default = f" DEFAULT {'TRUE' if d else 'FALSE'}" if db.engine.dialect.name == 'postgresql' else f' DEFAULT {int(d)}'
+                elif isinstance(d, (int, float)):
+                    default = f' DEFAULT {d}'
+                elif isinstance(d, str):
+                    default = " DEFAULT '" + d.replace("'", "''") + "'"
+                conn.execute(text(f'ALTER TABLE {t.name} ADD COLUMN {col.name} {tipo}{default}'))

@@ -1,0 +1,26 @@
+{% extends 'booking/_base.html' %}{% block corpo %}
+<div class="due">
+<form class="card" method="post"><h2 style="margin-top:0">I tuoi dati</h2>
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{% for k in ('tipo_id', 'piano_id', 'arrivo', 'partenza', 'adulti', 'bambini') %}<input type="hidden" name="{{ k }}" value="{{ f.get(k, '') }}">{% endfor %}
+<div style="display:none"><label>Sito web</label><input name="sito_web" autocomplete="off" tabindex="-1"></div>
+<div class="form-griglia" style="grid-template-columns:1fr 1fr">
+<div><label>Cognome *</label><input name="cognome" value="{{ f.get('cognome', '') }}" required style="width:100%"></div>
+<div><label>Nome</label><input name="nome" value="{{ f.get('nome', '') }}" style="width:100%"></div>
+<div><label>Email *</label><input type="email" name="email" value="{{ f.get('email', '') }}" required style="width:100%"></div>
+<div><label>Telefono</label><input name="telefono" value="{{ f.get('telefono', '') }}" style="width:100%"></div>
+<div><label>Paese</label><input name="paese" value="{{ f.get('paese', '') }}" style="width:100%" placeholder="IT"></div>
+</div>
+<label>Richieste particolari</label><textarea name="note" rows="3" style="width:100%">{{ f.get('note', '') }}</textarea>
+<p><label style="font-weight:normal;color:var(--ink)"><input type="checkbox" name="privacy" value="1" required> Acconsento al trattamento dei miei dati per gestire la prenotazione e il soggiorno (obbligatorio).</label></p>
+<p><label style="font-weight:normal;color:var(--ink)"><input type="checkbox" name="marketing" value="1"> Voglio ricevere offerte della struttura (facoltativo, revocabile).</label></p>
+<button style="width:100%">Conferma la prenotazione</button></form>
+<div class="card"><h2 style="margin-top:0">Il tuo soggiorno</h2>
+<p><b>{{ tipo.nome }}</b> · {{ piano.nome }}<br>{{ f.get('arrivo')|replace('-', '/') }} → {{ f.get('partenza')|replace('-', '/') }} · {{ q.n_notti }} nott{{ 'e' if q.n_notti == 1 else 'i' }} · {{ adulti }} adult{{ 'o' if adulti == 1 else 'i' }}{% if bambini %}, {{ bambini }} bambini{% endif %}</p>
+<table>{% for n in q.notti %}<tr><td class="mute">{{ n.data[8:10] }}/{{ n.data[5:7] }}</td><td class="num">{{ n.prezzo|euro(2) }}</td></tr>{% endfor %}
+<tr><td><b>Totale soggiorno</b></td><td class="num"><b>{{ q.totale|euro(2) }}</b></td></tr>
+{% if q.tassa.totale %}<tr><td class="mute">Imposta di soggiorno (si paga in struttura)</td><td class="num mute">{{ q.tassa.totale|euro(2) }}</td></tr>{% endif %}
+{% if q.caparra %}<tr><td>Caparra alla prenotazione</td><td class="num">{{ q.caparra|euro(2) }}</td></tr>{% endif %}</table>
+<p class="mute" style="font-size:13px">{{ q.condizioni }}</p></div>
+</div>
+{% endblock %}

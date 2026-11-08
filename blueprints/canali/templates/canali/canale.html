@@ -1,0 +1,50 @@
+{% extends 'base.html' %}{% block titolo %}{{ c.nome }} — Canali{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0"><span class="pallino" style="background:{{ c.colore }}"></span> {{ c.nome }}</h1><span class="sp"></span><a class="btn sec" href="/canali">‹ Canali</a></div>
+<p class="mute">Commissione {{ '%g'|format(c.commissione_pct or 0) }}% · {{ CONNESSIONI.get(c.connessione or 'manuale') }}{% if c.ultimo_sync %} · ultimo scambio {{ c.ultimo_sync.strftime('%d/%m/%Y %H:%M') }}{% endif %}</p>
+
+<div class="due">
+<div class="card"><h2>1 · Connessione</h2>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="connessione">
+<label>Tipo di connessione</label><select name="connessione" style="width:100%">{% for k, e in CONNESSIONI.items() %}<option value="{{ k }}" {{ 'selected' if (c.connessione or 'manuale') == k }}>{{ e }}</option>{% endfor %}</select>
+<label>Codice della struttura sul portale <span class="mute">(WuBook: lcode/id piano · Channex: id property)</span></label><input name="codice_struttura" value="{{ c.codice_struttura or '' }}" style="width:100%">
+<label>Indirizzo del calendario iCal del portale <span class="mute">(per importare le sue prenotazioni)</span></label><input name="ical_url" value="{{ c.ical_url or '' }}" style="width:100%" placeholder="https://www.airbnb.it/calendar/ical/....ics">
+<div class="riga-az"><button>Salva la connessione</button></div></form>
+<p class="mute" style="font-size:12px">WuBook e Channex chiamano davvero i loro server solo con le credenziali nelle variabili del programma (WUBOOK_USER/WUBOOK_PASSWORD, CHANNEX_API_KEY); senza, il gestionale prepara i dati e li mostra nel registro.</p></div>
+
+<div class="card"><h2>3 · Invia e ricevi</h2>
+<form method="post" class="bar"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="invia">
+dal <input type="date" name="da" value="{{ da.isoformat() }}"> per 90 giorni <button>Invia disponibilità, prezzi e restrizioni</button></form>
+{% if c.connessione in ('simulatore', 'wubook', 'channex') %}<form method="post" class="bar"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="ricevi">
+{% if c.connessione == 'simulatore' %}<input type="number" name="quante" value="2" min="1" max="10" style="width:60px"> richieste dal portale{% endif %}
+<button class="sec">Ricevi le prenotazioni dal portale</button></form>{% endif %}
+{% if c.connessione == 'ical' %}
+<form method="post" class="bar"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="ical_url"><button class="sec" {{ 'disabled' if not c.ical_url }}>Scarica il calendario del portale</button></form>
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="ical_testo">
+<label>…oppure carica il file .ics o incolla il testo</label><input type="file" name="file_ics" accept=".ics,text/calendar">
+<textarea name="ics" rows="3" style="width:100%" placeholder="BEGIN:VCALENDAR ..."></textarea>
+<select name="tipo_id">{% for m in mappe %}<option value="{{ m.tipo_id }}">{{ m.tipo.nome }}</option>{% endfor %}</select> <button class="sec">Importa il calendario</button></form>{% endif %}
+</div></div>
+
+<div class="card"><h2>2 · Camere sul portale (mappatura, allotment, ricarico)</h2>
+<p class="mute">Codice = id della camera sul portale. Allotment = quante camere di quel tipo metti al massimo su questo canale (vuoto = tutte le libere). Ricarico = differenza di prezzo rispetto al sito: con la parità tariffaria di norma è 0.</p>
+<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="mappature">
+<table><tr><th>Tipologia</th><th>Codice sul portale</th><th class="num">Allotment</th><th class="num">Ricarico %</th><th>In vendita</th>{% if c.connessione == 'ical' %}<th>Calendario da dare al portale</th>{% endif %}</tr>
+{% for m in mappe %}<tr><td>{{ m.tipo.codice }} · {{ m.tipo.nome }}</td><td><input name="codice_{{ m.id }}" value="{{ m.codice_ota or '' }}" style="width:110px"></td>
+<td class="num"><input name="allotment_{{ m.id }}" value="{{ '' if m.allotment is none else m.allotment }}" style="width:60px" placeholder="tutte"></td>
+<td class="num"><input name="ricarico_{{ m.id }}" value="{{ '%g'|format(m.ricarico_pct or 0) }}" style="width:60px"></td>
+<td><input type="checkbox" name="attivo_{{ m.id }}" value="1" {{ 'checked' if m.attivo }}></td>
+{% if c.connessione == 'ical' %}<td><input readonly value="{{ ical[m.tipo_id] }}" style="width:100%;font-size:12px" onclick="this.select()"></td>{% endif %}</tr>{% endfor %}</table>
+<div class="riga-az"><button>Salva le mappature</button>{% if c.connessione == 'ical' %} <button class="sec" name="azione" value="nuovo_token" onclick="return confirm('Il vecchio indirizzo smette di funzionare. Continuare?')">Nuovo indirizzo iCal</button>{% endif %}</div></form></div>
+
+<div class="card"><h2>Che cosa vede il portale nei prossimi 14 giorni</h2>
+<div class="scroll"><table><tr><th>Tipologia</th>{% for g_ in (righe[0].giorni if righe else []) %}<th class="num" style="font-size:11px">{{ g_.data[8:10] }}/{{ g_.data[5:7] }}</th>{% endfor %}</tr>
+{% for r in righe %}<tr><td><b>{{ r.codice_ota }}</b> <span class="mute">{{ r.tipo.nome }}</span></td>
+{% for g_ in r.giorni %}<td class="num" style="font-size:12px;{{ 'background:#ffe3e3' if g_.chiuso or g_.disponibili == 0 }}" title="min {{ g_.min_notti }} notti{{ ' · arrivi chiusi' if g_.chiuso_arrivo }}{{ ' · chiuso alla vendita' if g_.chiuso }}">
+<b>{{ g_.disponibili }}</b><br><span class="mute">{{ g_.prezzo|round|int }}€</span>{% if g_.min_notti > 1 %}<br><span class="mute">m{{ g_.min_notti }}</span>{% endif %}</td>{% endfor %}</tr>
+{% else %}<tr><td class="mute">Nessuna tipologia in vendita su questo canale: attivale nella mappatura.</td></tr>{% endfor %}</table></div>
+<p class="mute">In ogni casella: camere in vendita e prezzo a notte (piano di riferimento, persone comprese). In rosso: esaurito o chiuso alla vendita.</p></div>
+
+<div class="card"><h2>Registro di questo canale</h2>
+<table>{% for s in log %}<tr><td class="mute">{{ s.quando.strftime('%d/%m %H:%M') }}</td><td>{{ '→' if s.direzione == 'uscita' else '←' }} {{ s.oggetto }}</td><td class="{{ 'critico' if s.esito == 'errore' }}">{{ s.messaggio }}</td><td>{% if s.dati %}<a class="mute" href="/canali/registro/{{ s.id }}" target="_blank">dati</a>{% endif %}</td></tr>
+{% else %}<tr><td class="mute">Nessuno scambio.</td></tr>{% endfor %}</table></div>
+{% endblock %}

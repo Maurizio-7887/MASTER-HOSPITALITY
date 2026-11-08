@@ -1,0 +1,23 @@
+{% extends 'base.html' %}{% block titolo %}Canali — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Channel manager</h1><span class="sp"></span>
+<a class="btn sec" href="/canali/parita">Parità tariffaria</a>
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button name="azione" value="invia_tutti" title="Disponibilità, prezzi e restrizioni dei prossimi 90 giorni a tutti i canali collegati">Invia disponibilità e prezzi a tutti</button></form></div>
+<p class="mute">Il gestionale è la fonte unica: disponibilità, prezzi e restrizioni partono da qui verso i portali, e le prenotazioni dei portali entrano qui una volta sola. Ogni canale ha la sua connessione: <b>simulatore</b> per le prove e il corso, <b>iCal</b> per Airbnb e Vrbo, <b>WuBook</b> o <b>Channex</b> per i portali certificati (Booking.com, Expedia), oppure manuale.</p>
+<table><tr><th>Canale</th><th>Tipo</th><th class="num">Commissione</th><th>Connessione</th><th class="num">Prenotazioni dell'anno</th><th>Ultimo scambio</th><th></th></tr>
+{% for x in canali %}{% set c = x.c %}<tr><td><span class="pallino" style="background:{{ c.colore }}"></span> <b>{{ c.nome }}</b>{% if not c.attivo %} <span class="mute">(non attivo)</span>{% endif %}</td>
+<td class="mute">{{ c.tipo }}</td><td class="num">{{ '%g'|format(c.commissione_pct or 0) }}%</td><td>{{ x.connessione }}</td><td class="num">{{ x.prenotazioni }}</td>
+<td class="mute" style="font-size:12px">{% if x.ultimo %}{{ x.ultimo.quando.strftime('%d/%m %H:%M') }} · <span class="{{ 'critico' if x.ultimo.esito == 'errore' }}">{{ x.ultimo.messaggio[:70] }}</span>{% else %}mai{% endif %}</td>
+<td><a class="btn sec mini" href="/canali/{{ c.id }}">Apri</a></td></tr>{% endfor %}</table>
+
+<div class="card"><h2>Booking engine sul sito</h2>
+{% if booking_attivo %}<p>La pagina di prenotazione online della struttura è <b>attiva</b>: gli ospiti vedono disponibilità e prezzi veri, scelgono la tariffa e prenotano senza commissioni. Collegala al tuo sito con un pulsante «Prenota ora».</p>
+<p><input readonly value="{{ booking_url }}" style="width:100%" onclick="this.select()"> <a class="btn sec mini" href="{{ booking_url }}" target="_blank">Apri la pagina</a></p>
+<p class="mute">Codice da incollare nel sito: <code>&lt;a href="{{ booking_url }}" target="_blank"&gt;Prenota ora&lt;/a&gt;</code></p>
+{% else %}<p class="mute">Il booking engine è spento: lo accendi in Struttura → Parametri («Booking engine sul sito» = 1).</p>{% endif %}</div>
+
+<div class="card"><h2>Registro delle sincronizzazioni</h2>
+<table><tr><th>Quando</th><th>Canale</th><th></th><th>Oggetto</th><th>Messaggio</th><th></th></tr>
+{% for s in log %}<tr><td class="mute">{{ s.quando.strftime('%d/%m %H:%M') }}</td><td>{{ s.canale.nome if s.canale else '' }}</td><td>{{ '→ uscita' if s.direzione == 'uscita' else '← entrata' }}</td>
+<td class="mute">{{ s.oggetto }}</td><td class="{{ 'critico' if s.esito == 'errore' }}">{{ s.messaggio }}</td><td>{% if s.dati %}<a class="mute" href="/canali/registro/{{ s.id }}" target="_blank">dati</a>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="mute">Ancora nessuno scambio con i portali.</td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends 'booking/_base.html' %}{% block corpo %}
+<div class="card" style="text-align:center">
+<h2 style="margin-top:0">{{ 'Prenotazione confermata' if p.stato == 'confermata' else 'Camera bloccata: manca la caparra' }}</h2>
+<p style="font-size:18px">Codice <b>{{ p.codice }}</b></p>
+<p>{{ p.ospite.nominativo }} · {{ p.tipo.nome }} · {{ p.piano.nome }}<br>{{ p.arrivo|dt }} → {{ p.partenza|dt }} · {{ p.notti }} notti · <b>{{ p.importo|euro(2) }}</b></p>
+{% if p.stato == 'opzione' %}<div class="banner">Per confermare versa la caparra di <b>{{ p.caparra|euro(2) }}</b> entro il {{ p.opzione_fino|dt }}: ti abbiamo scritto all'indirizzo {{ p.ospite.email }} con le istruzioni. Senza caparra la camera torna libera.</div>{% endif %}
+<p class="mute">{{ condizioni }}</p>
+<p>Ti abbiamo inviato il riepilogo per email. Ti aspettiamo!</p>
+<a class="btn sec" href="{{ url_for('booking.cerca', sid=sid) }}">Nuova ricerca</a></div>
+{% endblock %}

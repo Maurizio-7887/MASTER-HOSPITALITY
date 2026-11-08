@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% block titolo %}Email agli ospiti — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Email agli ospiti</h1><span class="sp"></span>
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button name="azione" value="invia_oggi" {{ 'disabled' if not coda }}>Invia le {{ coda|length }} email di oggi</button></form></div>
+<p class="mute">La conferma parte da sola quando l'ospite prenota dal sito (e dalla scheda della prenotazione). Ogni giorno qui trovi i promemoria per chi arriva fra 3 giorni e i ringraziamenti per chi è appena partito. Senza server di posta configurato le email si registrano come «anteprima».</p>
+{% if coda %}<div class="card"><h2>Da inviare oggi</h2><table>{% for p, e in coda %}<tr><td>{{ EVENTI[e] }}</td><td><a href="/prenotazioni/{{ p.id }}">{{ p.ospite.nominativo }}</a></td><td class="mute">{{ p.ospite.email }}</td><td>{{ p.arrivo|dt }} → {{ p.partenza|dt }}</td></tr>{% endfor %}</table></div>{% endif %}
+{% for e, et in EVENTI.items() %}{% set m = modelli[e] %}
+<div class="card"><form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="evento" value="{{ e }}">
+<div class="bar"><h2 style="margin:0">{{ et }}</h2><span class="sp"></span><label style="font-weight:normal"><input type="checkbox" name="attivo" value="1" {{ 'checked' if m.attivo }}> attiva</label></div>
+<label>Oggetto</label><input name="oggetto" value="{{ m.oggetto }}" style="width:100%">
+<label>Testo <span class="mute">segnaposto: {nome} {cognome} {codice} {arrivo} {partenza} {checkin} {checkout} {camera} {persone} {piano} {totale} {caparra} {condizioni} {struttura}</span></label>
+<textarea name="testo" rows="8" style="width:100%">{{ m.testo }}</textarea>
+<div class="riga-az"><button name="azione" value="salva">Salva</button><button class="sec" name="azione" value="predefinito">Testo predefinito</button></div></form>
+{% if anteprime.get(e) %}<details><summary class="mute">Anteprima con {{ esempio.ospite.nominativo }}</summary><pre style="white-space:pre-wrap;background:var(--bg);padding:10px;border-radius:6px"><b>{{ anteprime[e][0] }}</b>
+
+{{ anteprime[e][1] }}</pre></details>{% endif %}</div>{% endfor %}
+<div class="card"><h2>Ultimi invii</h2><table>{% for s in storico %}{% set p = pren.get(s.prenotazione_id) %}<tr><td class="mute">{{ s.inviata_il.strftime('%d/%m %H:%M') }}</td><td>{{ EVENTI.get(s.evento, s.evento) }}</td>
+<td>{% if p %}<a href="/prenotazioni/{{ p.id }}">{{ p.codice }}</a>{% endif %}</td><td class="mute">{{ s.destinatario }}</td><td class="{{ 'critico' if s.esito == 'errore' }}">{{ s.esito }}</td></tr>
+{% else %}<tr><td class="mute">Nessuna email inviata.</td></tr>{% endfor %}</table></div>
+{% endblock %}

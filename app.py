@@ -8,7 +8,9 @@ from config import Config
 from models import db
 
 TABELLE_PER_SPAZIO = ['tipi_camera', 'camere', 'piani_tariffari', 'stagioni', 'restrizioni', 'tariffe_giorno', 'canali', 'eventi',
-                      'costi_fissi', 'ospiti', 'prenotazioni', 'notti_vendute', 'addebiti', 'pagamenti', 'alloggiati']
+                      'costi_fissi', 'ospiti', 'prenotazioni', 'notti_vendute', 'addebiti', 'pagamenti', 'alloggiati',
+                      'canali_tipi', 'sincronizzazioni', 'aziende', 'documenti', 'vendite_cassa', 'chiusure', 'tariffe_concorrenti',
+                      'guasti', 'modelli_email', 'email_inviate']
 
 
 def create_app(config=None):
@@ -30,6 +32,8 @@ def create_app(config=None):
     import spazi  # noqa: F401  (filtro automatico per spazio di lavoro)
     with app.app_context():
         db.create_all()
+        from models import aggiorna_schema
+        aggiorna_schema()
         _spazio_principale()
         accesso.crea_admin_da_ambiente(app)
         if app.config.get('DEMO_DATA') and not app.config.get('TESTING'):

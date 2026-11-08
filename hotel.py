@@ -20,6 +20,17 @@ PARAMETRI = {   # chiave: (etichetta, default, tipo)
     'margine_minimo': ('DynaPrice: margine minimo sul prezzo netto (%)', 25, float),
     'max_overbooking': ('DynaPrice: camere massime in overbooking per notte', 1, int),
     'giorni_opzione': ('Giorni di validità di un\'opzione', 3, int),
+    'ragione_sociale': ('Ragione sociale (per ricevute e fatture)', '', str),
+    'partita_iva': ('Partita IVA', '', str),
+    'codice_fiscale_struttura': ('Codice fiscale della società', '', str),
+    'indirizzo': ('Indirizzo (via e numero)', '', str),
+    'cap': ('CAP', '', str),
+    'provincia': ('Provincia (sigla)', '', str),
+    'regime_fiscale': ('Regime fiscale FatturaPA (RF01 ordinario, RF19 forfettario)', 'RF01', str),
+    'email_struttura': ('Email della struttura (mittente delle email agli ospiti)', '', str),
+    'telefono_struttura': ('Telefono della struttura', '', str),
+    'booking_attivo': ('Booking engine sul sito: 1 = attivo, 0 = spento', 1, int),
+    'codice_istat': ('Codice ISTAT della struttura (movimento clienti)', '', str),
 }
 
 

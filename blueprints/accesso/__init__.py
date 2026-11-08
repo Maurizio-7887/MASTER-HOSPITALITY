@@ -24,8 +24,10 @@ LIBERI = {'accesso.login', 'accesso.primo_avvio', 'static', 'salute', 'abbonamen
 # endpoint permessi ai piani (governante, cameriere ai piani)
 PIANI = {'accesso.logout', 'accesso.password', 'housekeeping.housekeeping', 'housekeeping.api_stato_camera', 'index', 'corso.api_tutor',
          'corso.api_verifica', 'corso.api_vai', 'corso.api_ricomincia'}
+# pagine pubbliche: booking engine per gli ospiti e calendario iCal per i portali
+PUBBLICI = ('booking.', 'canali.ical')
 # aree vietate alla reception
-SOLO_DIREZIONE = ('revenue.', 'controllo.', 'struttura.')
+SOLO_DIREZIONE = ('revenue.', 'controllo.', 'struttura.', 'canali.')
 MIN_PASSWORD = 8
 
 
@@ -52,7 +54,7 @@ def proteggi(app):
     def _guardia():
         g.utente = None
         ep = request.endpoint or ''
-        if ep in LIBERI:
+        if ep in LIBERI or ep.startswith(PUBBLICI):
             return None
         if Utente.query.count() == 0:
             if request.path.startswith('/api/'):

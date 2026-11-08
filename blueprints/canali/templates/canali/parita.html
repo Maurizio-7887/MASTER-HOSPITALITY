@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block titolo %}Parità tariffaria — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Parità tariffaria</h1><span class="sp"></span>
+<form class="bar" style="margin:0">dal <input type="date" name="da" value="{{ da.isoformat() }}"> per <input type="number" name="giorni" value="{{ giorni }}" min="1" max="31" style="width:60px"> giorni <button class="sec">Mostra</button></form>
+<a class="btn sec" href="/canali">‹ Canali</a></div>
+<p class="mute">Prezzo pubblico della camera (persone comprese) su ogni canale e quanto resta all'hotel dopo la commissione. In rosso i canali che vendono sotto il sito: la parità è rotta e l'ospite non ha motivo di prenotare direttamente. In verde il canale che lascia di più all'hotel.</p>
+{% if rotte %}<div class="banner err">{{ rotte }} prezzi sotto il prezzo del sito: controlla i ricarichi nelle mappature dei canali.</div>{% endif %}
+<div class="scroll"><table><tr><th>Data</th><th>Tipologia</th>{% for x in (tabella[0].canali if tabella else []) %}<th class="num">{{ x.canale.nome }}<br><span class="mute" style="font-weight:normal">prezzo · netto</span></th>{% endfor %}</tr>
+{% for r in tabella %}<tr><td>{{ r.data|dt }}</td><td>{{ r.tipo.codice }}</td>
+{% for x in r.canali %}<td class="num" style="{{ 'background:#ffe3e3' if x.sotto_il_sito else 'background:#e6fcf5' if x.canale.nome == r.migliore }}">{{ x.prezzo|euro }} · <b>{{ x.netto|euro }}</b></td>{% endfor %}</tr>{% endfor %}</table></div>
+{% endblock %}

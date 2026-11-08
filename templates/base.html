@@ -16,8 +16,11 @@
   <a href="/planner" class="{{ 'on' if request.path.startswith('/planner') }}">Planner</a>
   <a href="/prenotazioni" class="{{ 'on' if request.path.startswith('/prenotazioni') }}">Prenotazioni</a>
   <a href="/ospiti" class="{{ 'on' if request.path.startswith('/ospiti') }}">Ospiti</a>
-  <a href="/housekeeping" class="{{ 'on' if request.path.startswith('/housekeeping') }}">Housekeeping</a>
+  <a href="/housekeeping" class="{{ 'on' if request.path.startswith('/housekeeping') or request.path.startswith('/manutenzione') }}">Housekeeping</a>
+  <a href="/cassa" class="{{ 'on' if request.path.startswith('/cassa') or request.path.startswith('/chiusura') or request.path.startswith('/documenti') }}">Cassa</a>
+  <a href="/adempimenti" class="{{ 'on' if request.path.startswith(('/adempimenti', '/alloggiati', '/imposta-soggiorno', '/istat', '/comunicazioni')) }}">Adempimenti</a>
   {% if utente and utente.ruolo in ('admin', 'revenue') %}
+  <a href="/canali" class="{{ 'on' if request.path.startswith('/canali') }}">Canali</a>
   <a href="/revenue" class="{{ 'on' if request.path.startswith('/revenue') }}">DynaPrice</a>
   <a href="/controllo" class="{{ 'on' if request.path.startswith('/controllo') }}">Controllo</a>
   <a href="/struttura" class="{{ 'on' if request.path.startswith('/struttura') }}">Struttura</a>

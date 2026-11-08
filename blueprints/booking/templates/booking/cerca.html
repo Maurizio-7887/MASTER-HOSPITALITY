@@ -1,0 +1,28 @@
+{% extends 'booking/_base.html' %}{% block corpo %}
+<form class="card be-cerca" method="get">
+<div><label>Arrivo</label><input type="date" name="arrivo" value="{{ d.arrivo }}" min="{{ oggi.isoformat() }}" required></div>
+<div><label>Partenza</label><input type="date" name="partenza" value="{{ d.partenza }}" min="{{ oggi.isoformat() }}" required></div>
+<div><label>Adulti</label><select name="adulti">{% for n in range(1, 7) %}<option {{ 'selected' if n == d.adulti }}>{{ n }}</option>{% endfor %}</select></div>
+<div><label>Bambini</label><select name="bambini">{% for n in range(0, 5) %}<option {{ 'selected' if n == d.bambini }}>{{ n }}</option>{% endfor %}</select></div>
+<div><button style="width:100%">Cerca disponibilità</button></div>
+</form>
+{% if errore %}<div class="banner err">{{ errore }}</div>{% endif %}
+{% if risultati is not none %}
+<h2>{{ notti }} nott{{ 'e' if notti == 1 else 'i' }} · {{ d.adulti }} adult{{ 'o' if d.adulti == 1 else 'i' }}{% if d.bambini %} e {{ d.bambini }} bambin{{ 'o' if d.bambini == 1 else 'i' }}{% endif %}</h2>
+{% set libere = risultati|selectattr('tariffe')|list %}
+{% if not libere %}<div class="card"><p>Per queste date non ci sono camere disponibili per {{ d.adulti + d.bambini }} persone. Prova a cambiare le date o scrivici: troveremo una soluzione.</p></div>{% endif %}
+{% for r in risultati %}{% set t = r.tipo %}
+<div class="card be-tipo" style="{{ 'opacity:.6' if not r.tariffe }}">
+<div><h3 style="margin-top:0">{{ t.nome }}</h3><p class="mute">{{ t.descrizione or ('Camera per ' ~ t.posti_max ~ ' persone') }}</p>
+<span class="be-tag">fino a {{ t.posti_max }} persone</span>
+{% if r.tariffe and r.ultime <= 2 %}<p class="be-pochi">Solo {{ r.ultime }} camer{{ 'a' if r.ultime == 1 else 'e' }} rimast{{ 'a' if r.ultime == 1 else 'e' }} a questo prezzo</p>{% endif %}</div>
+<div>{% for x in r.tariffe %}{% set p = x.piano %}{% set q = x.q %}
+<div class="be-tariffa"><div style="flex:1"><b>{{ p.nome }}</b><br>
+{% if p.colazione %}<span class="be-tag">colazione inclusa</span>{% endif %}<span class="be-tag">{{ 'cancellazione gratuita' if p.rimborsabile else 'non rimborsabile' }}</span>
+<div class="mute" style="font-size:12px;margin-top:3px">{{ q.condizioni }}{% if q.caparra %} Caparra alla prenotazione: {{ q.caparra|euro(2) }}.{% endif %}</div></div>
+<div style="text-align:right"><div class="prezzo">{{ q.totale|euro }}</div><div class="mute" style="font-size:12px">{{ (q.totale / q.n_notti)|euro }} a notte{% if q.tassa.totale %} + imposta di soggiorno{% endif %}</div>
+<a class="btn" href="{{ url_for('booking.dati', sid=sid, tipo_id=t.id, piano_id=p.id, arrivo=d.arrivo, partenza=d.partenza, adulti=d.adulti, bambini=d.bambini) }}">Prenota</a></div></div>
+{% else %}<p class="mute">Non prenotabile: {{ r.motivo }}</p>{% endfor %}</div></div>
+{% endfor %}
+{% elif not cerca_fatta %}<div class="card"><p>Scegli le date del soggiorno per vedere camere libere e prezzi. Prenotando qui paghi il prezzo migliore: nessun intermediario.</p></div>{% endif %}
+{% endblock %}

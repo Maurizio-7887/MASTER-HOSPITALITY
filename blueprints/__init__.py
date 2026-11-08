@@ -4,6 +4,7 @@ from importlib import import_module
 # ordine di registrazione: accesso e piattaforma prima, poi il lavoro quotidiano, poi direzione e corso
 NOMI = ['accesso', 'piattaforma', 'abbonamento', 'corso',
         'giornata', 'planner', 'prenotazioni', 'ospiti', 'housekeeping', 'adempimenti',
+        'canali', 'booking', 'comunicazioni',
         'revenue', 'controllo', 'struttura']
 
 
