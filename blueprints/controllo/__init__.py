@@ -6,7 +6,7 @@ from flask import Blueprint, Response, current_app, jsonify, render_template, re
 
 import controllo as ctl
 
-bp = Blueprint('controllo', __name__)
+bp = Blueprint('controllo', __name__, template_folder='templates')
 
 
 @bp.route('/controllo')

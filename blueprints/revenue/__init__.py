@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, render_templ
 import dynaprice as dp
 from models import TipoCamera, db
 
-bp = Blueprint('revenue', __name__)
+bp = Blueprint('revenue', __name__, template_folder='templates')
 GIORNI = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom']
 
 
@@ -60,7 +60,7 @@ def rischio():
 
 @bp.route('/revenue/simula', methods=['POST'])
 def simula():
-    from accesso import _csrf_ok
+    from blueprints.accesso import _csrf_ok
     if not _csrf_ok():
         flash('Sessione scaduta: riprova', 'err')
         return redirect(url_for('revenue.pagina'))
@@ -70,7 +70,7 @@ def simula():
         db.session.rollback()
         flash(e['errore'], 'err')
     else:
-        from corso import attivo
+        from blueprints.corso import attivo
         from models import Impostazione
         if attivo():
             Impostazione.scrivi('corso_simulazioni', str(int(Impostazione.leggi('corso_simulazioni') or 0) + 1))
@@ -100,7 +100,7 @@ def api_commento():
 
 def _tutor():
     try:
-        from corso import controlla_in_silenzio
+        from blueprints.corso import controlla_in_silenzio
         controlla_in_silenzio()
     except Exception:   # noqa: BLE001
         db.session.rollback()

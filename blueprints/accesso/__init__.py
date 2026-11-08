@@ -16,13 +16,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from models import Utente, db
 
-bp = Blueprint('accesso', __name__)
+bp = Blueprint('accesso', __name__, template_folder='templates')
 
 RUOLI = {'admin': 'Direzione (amministratore)', 'revenue': 'Revenue manager', 'reception': 'Reception', 'piani': 'Governante / piani'}
 LIBERI = {'accesso.login', 'accesso.primo_avvio', 'static', 'salute', 'abbonamento.pagina', 'abbonamento.grazie',
           'abbonamento.webhook'}
 # endpoint permessi ai piani (governante, cameriere ai piani)
-PIANI = {'accesso.logout', 'accesso.password', 'front.housekeeping', 'front.api_stato_camera', 'index', 'corso.api_tutor',
+PIANI = {'accesso.logout', 'accesso.password', 'housekeeping.housekeeping', 'housekeeping.api_stato_camera', 'index', 'corso.api_tutor',
          'corso.api_verifica', 'corso.api_vai', 'corso.api_ricomincia'}
 # aree vietate alla reception
 SOLO_DIREZIONE = ('revenue.', 'controllo.', 'struttura.')
@@ -78,7 +78,7 @@ def proteggi(app):
         if vietato:
             if request.path.startswith('/api/'):
                 return jsonify({'ok': False, 'error': 'operazione non consentita al tuo ruolo'}), 403
-            return redirect(url_for('front.housekeeping' if u.ruolo == 'piani' else 'index'))
+            return redirect(url_for('housekeeping.housekeeping' if u.ruolo == 'piani' else 'index'))
         if ep.startswith('accesso.utent') and u.ruolo != 'admin':
             abort(403)
         if ep.startswith('piattaforma.') and not u.gestore:
@@ -105,7 +105,7 @@ def proteggi(app):
                 avviso = ('', f'L\'abbonamento scade il {sp.scadenza.strftime("%d/%m/%Y")}.')
         richieste = 0
         if g.get('utente') is not None and g.utente.gestore:
-            from abbonamento import Iscrizione
+            from blueprints.abbonamento import Iscrizione
             richieste = Iscrizione.query.filter_by(stato='attesa').count()
         return {'utente': g.get('utente'), 'csrf_token': csrf_token, 'RUOLI': RUOLI, 'spazio': sp, 'avviso_spazio': avviso,
                 'richieste_attivazione': richieste,
@@ -130,7 +130,7 @@ def login():
             u.ultimo_accesso = datetime.utcnow()
             db.session.commit()
             if u.ruolo == 'piani':
-                return redirect(url_for('front.housekeeping'))
+                return redirect(url_for('housekeeping.housekeeping'))
             return redirect(_sicuro(request.form.get('next')) or url_for('index'))
         time.sleep(0.6)  # rallenta i tentativi a raffica
         errore = 'Nome utente o password non corretti'

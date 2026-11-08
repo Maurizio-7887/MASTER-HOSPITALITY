@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash
 from models import Prenotazione, Spazio, Utente, db
 from spazi import nello_spazio
 
-bp = Blueprint('piattaforma', __name__)
+bp = Blueprint('piattaforma', __name__, template_folder='templates')
 
 TIPI = {'azienda': 'Azienda cliente', 'formazione': 'Allievo / formazione', 'demo': 'Dimostrazione'}
 DATI = {'vuoto': 'Struttura da configurare (piani tariffari e canali di base)', 'demo': 'Hotel dimostrativo (Hotel Le Logge, Firenze)',
@@ -25,7 +25,7 @@ def password_casuale():
 
 
 def _csrf():
-    from accesso import _csrf_ok
+    from blueprints.accesso import _csrf_ok
     if not _csrf_ok():
         flash('Sessione scaduta: riprova', 'err')
         return False
@@ -34,7 +34,7 @@ def _csrf():
 
 def crea_spazio(nome, tipo='azienda', scadenza=None, email='', dati='vuoto', admin=None):
     """Crea uno spazio con il suo amministratore. admin = (nome, username, password). Ritorna lo spazio."""
-    from accesso import _valida
+    from blueprints.accesso import _valida
     if admin:
         err = _valida(admin[1], admin[2])
         if err:
@@ -52,7 +52,7 @@ def crea_spazio(nome, tipo='azienda', scadenza=None, email='', dati='vuoto', adm
             from seed_demo import carica_demo
             carica_demo()
         elif dati == 'corso':
-            from corso import carica_base_corso
+            from blueprints.corso import carica_base_corso
             carica_base_corso()
         else:
             from seed_demo import struttura_iniziale
@@ -74,7 +74,7 @@ def pagina():
         azione = request.form.get('azione')
         try:
             if azione in ('attiva_richiesta', 'rifiuta_richiesta'):
-                from abbonamento import Iscrizione, attiva
+                from blueprints.abbonamento import Iscrizione, attiva
                 isc = db.get_or_404(Iscrizione, request.form.get('token', ''))
                 if isc.stato != 'attesa':
                     raise ValueError('richiesta già gestita')
@@ -139,7 +139,7 @@ def pagina():
         utenti.setdefault(u.spazio_id, []).append(u)
     commesse = dict(db.session.query(Prenotazione.spazio_id, db.func.count(Prenotazione.id))
                     .execution_options(tutti_gli_spazi=True).group_by(Prenotazione.spazio_id).all())
-    from abbonamento import Iscrizione
+    from blueprints.abbonamento import Iscrizione
     richieste = Iscrizione.query.filter_by(stato='attesa').order_by(Iscrizione.creato_il).all()
     return render_template('piattaforma/spazi.html', richieste=richieste, spazi=spazi, utenti=utenti, commesse=commesse, TIPI=TIPI, DATI=DATI,
                            credenziali=credenziali, oggi=date.today())

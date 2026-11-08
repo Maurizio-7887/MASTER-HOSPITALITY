@@ -31,7 +31,7 @@ from werkzeug.security import generate_password_hash
 
 from models import Spazio, Utente, db
 
-bp = Blueprint('abbonamento', __name__)
+bp = Blueprint('abbonamento', __name__, template_folder='templates')
 API = 'https://api.stripe.com/v1'
 GRAZIA = 3   # giorni di tolleranza dopo la fine del periodo pagato
 
@@ -151,7 +151,7 @@ def _url(endpoint, **kw):
 
 @bp.route('/abbonati', methods=['GET', 'POST'])
 def pagina():
-    from accesso import _csrf_ok, _valida
+    from blueprints.accesso import _csrf_ok, _valida
     errore, dati = '', {}
     if request.method == 'POST':
         dati = {k: (request.form.get(k) or '').strip() for k in ('ragione_sociale', 'email', 'nome', 'username')}
@@ -209,7 +209,7 @@ def attiva(token, cliente='', abbonamento='', fine_periodo=None, scadenza=None):
         return None
     if isc.spazio_id:
         return db.session.get(Spazio, isc.spazio_id)
-    from piattaforma import crea_spazio
+    from blueprints.piattaforma import crea_spazio
     username = isc.username
     if Utente.query.filter(db.func.lower(Utente.username) == username.lower()).first():
         username = f'{username}{secrets.randbelow(900) + 100}'   # raro: preso nel frattempo da un altro

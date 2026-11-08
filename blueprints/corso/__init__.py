@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 from models import (Addebito, Camera, Evento, Impostazione, PianoTariffario, Prenotazione, Restrizione, TariffaGiorno,
                     TipoCamera, db)
 
-bp = Blueprint('corso', __name__)
+bp = Blueprint('corso', __name__, template_folder='templates')
 
 
 def _oggi():

@@ -22,12 +22,8 @@ def create_app(config=None):
 
     db.init_app(app)
 
-    import abbonamento
-    import accesso
-    import corso
-    import piattaforma
-    from blueprints import front, report, revenue, struttura
-    for bp in (accesso.bp, piattaforma.bp, corso.bp, abbonamento.bp, front.bp, struttura.bp, revenue.bp, report.bp):
+    from blueprints import ATTIVITA, accesso
+    for bp in ATTIVITA():
         app.register_blueprint(bp)
     accesso.proteggi(app)
 
@@ -44,8 +40,8 @@ def create_app(config=None):
     def index():
         from flask import g
         if g.get('utente') is not None and g.utente.ruolo == 'piani':
-            return redirect(url_for('front.housekeeping'))
-        return redirect(url_for('front.cruscotto'))
+            return redirect(url_for('housekeeping.housekeeping'))
+        return redirect(url_for('giornata.cruscotto'))
 
     @app.route('/salute')
     def salute():
@@ -71,7 +67,7 @@ def create_app(config=None):
         from flask import g
         nome, corso_attivo = '', False
         if g.get('utente') is not None:
-            from corso import attivo
+            from blueprints.corso import attivo
             from hotel import par
             nome, corso_attivo = par('nome_struttura'), attivo()
         return {'oggi': date.today().isoformat(), 'nome_struttura': nome, 'corso_attivo': corso_attivo}

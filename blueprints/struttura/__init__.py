@@ -7,7 +7,7 @@ import hotel as h
 from models import (REPARTI, Camera, Canale, CostoFisso, Evento, Impostazione, PianoTariffario, Prenotazione, Restrizione,
                     Stagione, TipoCamera, db)
 
-bp = Blueprint('struttura', __name__)
+bp = Blueprint('struttura', __name__, template_folder='templates')
 
 # entità: (modello, titolo, campi [(nome, etichetta, tipo, opzioni)])
 ENTITA = {
@@ -83,7 +83,7 @@ def _controlla(chi, obj):
 def pagina():
     sez = request.args.get('sez') or request.form.get('sez') or 'parametri'
     if request.method == 'POST':
-        from accesso import _csrf_ok
+        from blueprints.accesso import _csrf_ok
         if not _csrf_ok():
             flash('Sessione scaduta: riprova', 'err')
             return redirect(url_for('struttura.pagina', sez=sez))
@@ -137,7 +137,7 @@ def pagina():
                 raise h.Errore('Azione sconosciuta')
             db.session.commit()
             try:
-                from corso import controlla_in_silenzio
+                from blueprints.corso import controlla_in_silenzio
                 controlla_in_silenzio()
             except Exception:   # noqa: BLE001
                 db.session.rollback()

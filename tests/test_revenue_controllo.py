@@ -159,7 +159,7 @@ def test_ricomincia_corso(demo, app, client):
 
 
 def test_richiesta_con_bonifico(app, client, monkeypatch):
-    import abbonamento
+    from blueprints import abbonamento
     inviate = []
     monkeypatch.setattr(abbonamento, 'invia_email', lambda a, oggetto, testo, rispondi_a=None: inviate.append((a, oggetto, testo)) or True)
     app.config.update(IBAN='IT00X0000000000000000000000', PREZZO_TESTO='39 € + IVA al mese')
