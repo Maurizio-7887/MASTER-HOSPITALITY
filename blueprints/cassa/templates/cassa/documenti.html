@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block titolo %}Documenti — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Documenti emessi</h1><span class="sp"></span>
+<form class="bar" style="margin:0">dal <input type="date" name="da" value="{{ da.isoformat() }}"> al <input type="date" name="a" value="{{ a.isoformat() }}">
+<select name="tipo"><option value="">tutti</option>{% for k, v in DOCUMENTI.items() %}<option value="{{ k }}" {{ 'selected' if tipo == k }}>{{ v }}</option>{% endfor %}</select><button class="sec">Mostra</button></form>
+<a class="btn sec" href="/cassa">‹ Cassa</a></div>
+<p class="mute">Registro di ricevute, fatture e note di credito con numerazione progressiva per anno. Le fatture hanno il file XML FatturaPA da trasmettere allo SdI con il proprio intermediario.</p>
+<table><tr><th>Numero</th><th>Data</th><th>Tipo</th><th>Intestatario</th><th>Prenotazione</th><th class="num">Imponibile</th><th class="num">IVA</th><th class="num">Fuori campo</th><th class="num">Totale</th><th></th></tr>
+{% for d in righe %}<tr><td><a href="/documenti/{{ d.id }}">{{ d.sigla }}</a></td><td>{{ d.data|dt }}</td><td class="mute">{{ DOCUMENTI[d.tipo] }}</td><td>{{ d.intestatario }}</td>
+<td>{% if d.prenotazione %}<a href="/prenotazioni/{{ d.prenotazione.id }}">{{ d.prenotazione.codice }}</a>{% endif %}</td>
+<td class="num">{{ d.imponibile|euro(2) }}</td><td class="num">{{ d.iva|euro(2) }}</td><td class="num">{{ d.esente|euro(2) }}</td><td class="num"><b>{{ d.totale|euro(2) }}</b></td>
+<td>{% if d.xml %}<a class="mute" href="/documenti/{{ d.id }}.xml">XML</a>{% endif %}{% if d.a_credito and not d.incassato_il %} <span class="st st-opzione">a credito</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="10" class="mute">Nessun documento nel periodo.</td></tr>{% endfor %}
+<tr class="tot"><td colspan="5">Totale</td><td class="num">{{ tot.imponibile|euro(2) }}</td><td class="num">{{ tot.iva|euro(2) }}</td><td class="num">{{ tot.esente|euro(2) }}</td><td class="num">{{ tot.totale|euro(2) }}</td><td></td></tr></table>
+{% endblock %}

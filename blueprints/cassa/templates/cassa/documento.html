@@ -1,0 +1,22 @@
+{% extends 'base.html' %}{% block titolo %}{{ DOCUMENTI[d.tipo] }} {{ d.sigla }}{% endblock %}{% block corpo %}
+<div class="bar noprint"><a class="btn sec" href="/documenti">‹ Documenti</a><span class="sp"></span>
+{% if d.xml %}<a class="btn sec" href="/documenti/{{ d.id }}.xml">Scarica l'XML FatturaPA</a>{% endif %}
+{% if d.a_credito and not d.incassato_il %}<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button name="azione" value="incassa">Credito incassato</button></form>{% endif %}
+{% if d.tipo != 'nota_credito' and 'stornato' not in dati.get('conto', '') %}<form method="post" style="display:inline" onsubmit="return confirm('Emettere la nota di credito che annulla questo documento?')"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><button class="sec" name="azione" value="storna">Storna con nota di credito</button></form>{% endif %}
+<button class="sec" onclick="print()">Stampa</button></div>
+<div class="card" style="max-width:820px">
+<div class="bar"><div><b style="font-size:18px">{{ s.ragione_sociale or s.nome_struttura }}</b><br><span class="mute">{{ s.indirizzo }} {{ s.cap }} {{ s.comune }} {{ s.provincia }}{% if s.partita_iva %} · P. IVA {{ s.partita_iva }}{% endif %}</span></div>
+<span class="sp"></span><div style="text-align:right"><b>{{ DOCUMENTI[d.tipo] }}</b><br>n. {{ d.numero }}/{{ d.anno }} del {{ d.data|dt }}</div></div>
+<p>Intestata a: <b>{{ d.intestatario }}</b>{% if d.azienda %}<br><span class="mute">{{ d.azienda.indirizzo }} {{ d.azienda.cap }} {{ d.azienda.comune }} · P. IVA {{ d.azienda.partita_iva }} · SdI {{ d.azienda.codice_sdi }}</span>{% endif %}
+{% if d.prenotazione %}<br><span class="mute">Prenotazione {{ d.prenotazione.codice }} · {{ d.prenotazione.arrivo|dt }} → {{ d.prenotazione.partenza|dt }}</span>{% endif %}
+{% if dati.storna %}<br><b>Storna il documento {{ dati.storna }}</b>{% endif %}</p>
+<table><tr><th>Descrizione</th><th class="num">Q.tà</th><th class="num">Imponibile</th><th class="num">IVA</th><th class="num">Totale</th></tr>
+{% for r in dati.righe %}<tr><td>{{ r.descrizione }}</td><td class="num">{{ r.quantita|round(1) }}</td><td class="num">{{ r.imponibile|euro(2) }}</td>
+<td class="num">{{ r.natura or ('%g%%'|format(r.aliquota)) }}</td><td class="num">{{ r.lordo|euro(2) }}</td></tr>{% endfor %}</table>
+<table style="margin-top:10px;max-width:420px;margin-left:auto">{% for x in dati.riepilogo %}<tr><td class="mute">{{ 'Escluso art. 15 (imposta di soggiorno)' if x.natura == 'N1' else 'Aliquota %g%%'|format(x.aliquota) }}</td><td class="num">{{ x.imponibile|euro(2) }}</td><td class="num">{{ x.iva|euro(2) }}</td></tr>{% endfor %}
+<tr class="tot"><td>Totale documento</td><td></td><td class="num">{{ d.totale|euro(2) }}</td></tr></table>
+{% if d.a_credito %}<p class="mute">Pagamento a carico dell'azienda{% if d.azienda %} a {{ d.azienda.giorni_pagamento }} giorni{% endif %}. {{ 'Incassato il ' ~ (d.incassato_il|dt) if d.incassato_il else 'Da incassare.' }}</p>{% endif %}
+{% if d.tipo == 'ricevuta' %}<p class="mute" style="font-size:12px">Documento interno di riepilogo: lo scontrino o documento commerciale fiscale si emette con il registratore telematico.</p>{% endif %}
+</div>
+<style>@media print{nav,.noprint,#tutor{display:none!important}.card{border:0}}</style>
+{% endblock %}

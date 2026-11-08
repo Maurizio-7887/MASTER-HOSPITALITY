@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block titolo %}Aziende e crediti — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Aziende e crediti</h1><span class="sp"></span><a class="btn sec" href="/cassa">‹ Cassa</a></div>
+<p class="mute">Aziende e agenzie a cui intestare fatture e conti (city ledger). Le fatture «a credito» si incassano dopo la partenza: qui vedi cosa devono e cosa è scaduto.</p>
+<div class="card"><h2>Crediti aperti · {{ totale_crediti|euro(2) }}</h2>
+<table><tr><th>Fattura</th><th>Data</th><th>Azienda</th><th class="num">Importo</th><th>Scadenza</th><th></th></tr>
+{% for x in crediti %}<tr><td><a href="/documenti/{{ x.d.id }}">{{ x.d.sigla }}</a></td><td>{{ x.d.data|dt }}</td><td>{{ x.d.intestatario }}</td><td class="num">{{ x.d.totale|euro(2) }}</td>
+<td class="{{ 'critico' if x.scaduto }}">{{ x.scadenza|dt }}{% if x.scaduto %} · scaduta da {{ x.giorni }} gg{% endif %}</td><td><a class="btn sec mini" href="/documenti/{{ x.d.id }}">Apri</a></td></tr>
+{% else %}<tr><td colspan="6" class="mute">Nessun credito aperto.</td></tr>{% endfor %}</table></div>
+<div class="card"><h2>Anagrafica</h2><div class="scroll"><table><tr><th>Ragione sociale</th><th>P. IVA</th><th>Codice SdI</th><th>PEC</th><th>Indirizzo</th><th>CAP</th><th>Comune</th><th>Prov.</th><th>Gg pag.</th><th></th></tr>
+{% for a in aziende + [None] %}<tr><form method="post" id="a{{ a.id if a else 'n' }}"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">{% if a %}<input type="hidden" name="id" value="{{ a.id }}">{% endif %}</form>
+{% for k, w in (('ragione_sociale', 180), ('partita_iva', 110), ('codice_sdi', 80), ('pec', 150), ('indirizzo', 150), ('cap', 60), ('comune', 110), ('provincia', 40)) %}
+<td><input form="a{{ a.id if a else 'n' }}" name="{{ k }}" value="{{ (a[k] if a else ('0000000' if k == 'codice_sdi' else '')) or '' }}" style="width:{{ w }}px"></td>{% endfor %}
+<td><input form="a{{ a.id if a else 'n' }}" name="giorni_pagamento" value="{{ a.giorni_pagamento if a else 30 }}" style="width:50px"></td>
+<td style="white-space:nowrap"><button class="mini" form="a{{ a.id if a else 'n' }}" name="azione" value="salva">{{ 'Salva' if a else '+ Aggiungi' }}</button>
+{% if a %}<button class="sec mini" form="a{{ a.id }}" name="azione" value="elimina" onclick="return confirm('Eliminare l\'azienda?')">✕</button>{% endif %}</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

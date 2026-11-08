@@ -3,8 +3,10 @@ from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, abort, flash, g, jsonify, redirect, render_template, request, url_for
 
+import cassa
 import hotel as h
 from blueprints._comune import csrf as _csrf, data as _data, tutor as _tutor
+from models import Azienda, Documento
 from models import (METODI, REP_ADDEBITO, STATI, Addebito, Alloggiato, Camera, Canale, OCCUPANO, Ospite, PianoTariffario,
                     Prenotazione, TipoCamera, db)
 
@@ -159,7 +161,19 @@ def scheda(pid):
                 h.aggiungi_addebito(p, (f.get('descrizione') or REP_ADDEBITO[rep]).strip(), float((f.get('prezzo') or '0').replace(',', '.')),
                                     float((f.get('quantita') or '1').replace(',', '.')), rep, float(f.get('iva') or 10),
                                     float((f.get('costo') or '0').replace(',', '.')))
+                if f.get('conto') == 'azienda' and p.azienda_id:
+                    p.addebiti[-1].conto = 'azienda'
                 msg = 'Addebito registrato'
+            elif az == 'azienda':
+                p.azienda_id = f.get('azienda_id', type=int) or None
+                msg = 'Conto azienda impostato: le notti vanno sul conto dell\'azienda' if p.azienda_id else 'Conto azienda tolto'
+            elif az == 'documento':
+                d = cassa.emetti(p, f.get('tipo') or 'ricevuta', f.get('conto') or 'ospite')
+                msg = f'{"Fattura" if d.tipo == "fattura" else "Ricevuta"} {d.sigla} emessa' + (' a credito: da incassare dall\'azienda' if d.a_credito else '')
+            elif az == 'invia_conferma':
+                import comunicazioni
+                esito = comunicazioni.invia_evento(p, 'conferma', forza=True)
+                msg = {'ok': 'Email di conferma inviata', 'anteprima': 'Email di conferma registrata (server di posta non configurato)'}.get(esito, 'Email non inviata: manca l\'indirizzo dell\'ospite')
             elif az == 'elimina_addebito':
                 a = db.get_or_404(Addebito, f.get('id', type=int))
                 if a.prenotazione_id != p.id:
@@ -216,7 +230,8 @@ def scheda(pid):
     risk = rischio(p) if p.stato in ('opzione', 'confermata') else None
     return render_template('prenotazioni/scheda.html', p=p, c=c, STATI=STATI, METODI=METODI, REP_ADDEBITO=REP_ADDEBITO, libere=libere,
                            penale=h.penale_cancellazione(p) if p.stato in ('confermata',) else 0, condizioni=h.condizioni(p.piano),
-                           rischio=risk, oggi_d=date.today(), **_opzioni_form())
+                           rischio=risk, oggi_d=date.today(), conti=cassa.conti(p), aziende=Azienda.query.order_by(Azienda.ragione_sociale).all(),
+                           documenti=Documento.query.filter_by(prenotazione_id=p.id).order_by(Documento.id).all(), **_opzioni_form())
 
 
 @bp.route('/prenotazioni/<int:pid>/conto')

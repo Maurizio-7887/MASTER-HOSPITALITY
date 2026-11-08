@@ -1,0 +1,34 @@
+{% extends 'base.html' %}{% block titolo %}Cassa — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Cassa</h1><span class="sp"></span>
+<a class="btn sec" href="/documenti">Documenti</a><a class="btn sec" href="/aziende">Aziende e crediti</a>
+<a class="btn" href="/chiusura">Chiusura del {{ data_lavoro|dt }}</a></div>
+<div class="due">
+<div class="card"><h2>Punto cassa</h2>
+<form method="post" class="form-griglia"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div><label>Reparto</label><select name="reparto">{% for k, v in REP.items() %}<option value="{{ k }}" {{ 'selected' if k == 'bar' }}>{{ v }}</option>{% endfor %}</select></div>
+<div class="largo"><label>Descrizione</label><input name="descrizione" placeholder="es. 2 caffè, cena menù del giorno" style="width:100%" required></div>
+<div><label>Quantità</label><input name="quantita" value="1" style="width:70px"></div>
+<div><label>Prezzo unitario €</label><input name="prezzo" required style="width:90px" inputmode="decimal"></div>
+<div><label>IVA %</label><select name="iva"><option>10</option><option>22</option><option>4</option></select></div>
+<div><label>Costo unitario €</label><input name="costo" value="0" style="width:80px"></div>
+<div class="largo"><label>Chi paga</label><select name="prenotazione_id" style="width:100%"><option value="">Cliente al banco: paga subito</option>
+{% for x in in_casa %}<option value="{{ x.p.id }}">In camera {{ x.p.camera.numero if x.p.camera else '?' }} · {{ x.p.ospite.nominativo }}</option>{% endfor %}</select></div>
+<div><label>Pagamento (al banco)</label><select name="metodo">{% for k, v in METODI.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+<div><button>Registra</button></div></form>
+<p class="mute" style="font-size:12px">Al banco: incasso subito e ricevuta. In camera: va sul conto dell'ospite e si paga al check-out.</p></div>
+
+<div class="card"><h2>Oggi</h2>
+<table><tr><td>Camere vendute</td><td class="num">{{ oggi.camere_vendute }} / {{ oggi.camere_totali }} ({{ oggi.occupazione|pct }})</td></tr>
+<tr><td>Ricavo camere · ADR · RevPAR</td><td class="num">{{ oggi.ricavo_camere|euro }} · {{ oggi.adr|euro }} · {{ oggi.revpar|euro }}</td></tr>
+<tr><td>Extra in camera · banco</td><td class="num">{{ oggi.extra|euro }} · {{ oggi.banco|euro }}</td></tr>
+{% for k, v in oggi.incassi.items() %}<tr><td class="mute">Incassi: {{ METODI.get(k, k) if k in METODI else k }}</td><td class="num">{{ v|euro(2) }}</td></tr>{% endfor %}
+<tr class="tot"><td>Incassato (esclusi i crediti)</td><td class="num">{{ oggi.incassato|euro(2) }}</td></tr></table></div>
+</div>
+
+<div class="card"><h2>Conti degli ospiti in casa</h2>
+<table><tr><th>Camera</th><th>Ospite</th><th>Partenza</th><th class="num">Conto ospite</th><th class="num">Saldo ospite</th><th class="num">Conto azienda</th><th></th></tr>
+{% for x in in_casa %}<tr><td>{{ x.p.camera.numero if x.p.camera else '' }}</td><td><a href="/prenotazioni/{{ x.p.id }}#conto">{{ x.p.ospite.nominativo }}</a></td><td>{{ x.p.partenza|dt }}</td>
+<td class="num">{{ x.ospite.totale|euro(2) }}</td><td class="num {{ 'critico' if x.ospite.saldo > 0.009 }}">{{ x.ospite.saldo|euro(2) }}</td>
+<td class="num mute">{% if x.p.azienda %}{{ x.azienda.totale|euro(2) }} · {{ x.p.azienda.ragione_sociale }}{% endif %}</td><td><a class="btn sec mini" href="/prenotazioni/{{ x.p.id }}#conto">Conto</a></td></tr>
+{% else %}<tr><td colspan="7" class="mute">Nessun ospite in casa.</td></tr>{% endfor %}</table></div>
+{% endblock %}

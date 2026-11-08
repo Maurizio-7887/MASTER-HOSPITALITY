@@ -1,0 +1,25 @@
+{% extends 'base.html' %}{% block titolo %}Chiusura della giornata — Master Hospitality{% endblock %}{% block corpo %}
+<div class="bar"><h1 style="margin:0">Chiusura della giornata</h1><span class="sp"></span>
+<form class="bar" style="margin:0"><input type="date" name="data" value="{{ d.isoformat() }}"><button class="sec">Vedi</button></form><a class="btn sec" href="/cassa">‹ Cassa</a></div>
+<p class="mute">Il night audit: a fine giornata si controllano arrivi, partenze, conti e documenti, si fissano i numeri del giorno e si passa al giorno dopo. Giornata da chiudere: <b>{{ data_lavoro|dt }}</b>.</p>
+<div class="due"><div class="card"><h2>{{ d|dt }}{% if chiusa %} · <span class="ok">chiusa</span>{% endif %}</h2>
+<table><tr><td>Camere vendute</td><td class="num">{{ gi.camere_vendute }} / {{ gi.camere_totali }} · {{ gi.occupazione|pct }}</td></tr>
+<tr><td>Ricavo camere</td><td class="num">{{ gi.ricavo_camere|euro(2) }}</td></tr><tr><td>ADR · RevPAR</td><td class="num">{{ gi.adr|euro(2) }} · {{ gi.revpar|euro(2) }}</td></tr>
+<tr><td>Colazioni</td><td class="num">{{ gi.colazioni|euro(2) }}</td></tr><tr><td>Extra in camera</td><td class="num">{{ gi.extra|euro(2) }}</td></tr>
+<tr><td>Vendite al banco</td><td class="num">{{ gi.banco|euro(2) }}</td></tr><tr><td>Penali</td><td class="num">{{ gi.penali|euro(2) }}</td></tr>
+<tr><th colspan="2">Incassi</th></tr>{% for k, v in gi.incassi.items() %}<tr><td class="mute">{{ METODI.get(k, k) }}</td><td class="num">{{ v|euro(2) }}</td></tr>{% else %}<tr><td class="mute" colspan="2">Nessun incasso</td></tr>{% endfor %}
+<tr class="tot"><td>Incassato (esclusi i crediti)</td><td class="num">{{ gi.incassato|euro(2) }}</td></tr>
+<tr><td>Documenti emessi</td><td class="num">{{ gi.documenti|length }}</td></tr></table></div>
+<div class="card"><h2>Controlli</h2>
+{% if chiusa %}<p>Chiusa il {{ chiusa.chiusa_il.strftime('%d/%m/%Y %H:%M') }} da {{ chiusa.utente }}.{% if chiusa.note %} Note: {{ chiusa.note }}{% endif %}</p>
+{% else %}{% for tipo, p, msg in avvisi %}<p class="{{ 'critico' if tipo in ('arrivo', 'partenza') else 'attenzione' }}">• <a href="/prenotazioni/{{ p.id }}">{{ msg }}</a></p>
+{% else %}<p class="ok">Tutto in ordine.</p>{% endfor %}
+{% if d == data_lavoro %}<form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="data" value="{{ d.isoformat() }}">
+<label>Note della giornata</label><textarea name="note" rows="2" style="width:100%"></textarea>
+{% if utente.ruolo == 'admin' %}<label class="in"><input type="checkbox" name="forza" value="1"> chiudi anche con arrivi o partenze da sistemare</label>{% endif %}
+<div class="riga-az"><button>Chiudi la giornata del {{ d|dt }}</button></div></form>{% endif %}{% endif %}</div></div>
+<div class="card"><h2>Giornate chiuse</h2><table><tr><th>Data</th><th class="num">Camere</th><th class="num">Ricavo camere</th><th class="num">Extra</th><th class="num">Incassi</th><th>Da</th></tr>
+{% for c in storico %}<tr><td><a href="/chiusura?data={{ c.data.isoformat() }}">{{ c.data|dt }}</a></td><td class="num">{{ c.camere_vendute }}/{{ c.camere_totali }}</td><td class="num">{{ c.ricavo_camere|euro }}</td>
+<td class="num">{{ c.ricavo_extra|euro }}</td><td class="num">{{ (json.loads(c.incassi or '{}').items()|rejectattr(0, 'equalto', 'azienda')|map(attribute=1)|sum)|euro }}</td><td class="mute">{{ c.utente }}</td></tr>
+{% else %}<tr><td colspan="6" class="mute">Nessuna giornata chiusa.</td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -22,6 +22,7 @@
   {% if p.stato == 'confermata' and p.arrivo <= oggi_d %}{{ azione('no_show', 'No show', 'rosso sec', 'Registrare il mancato arrivo con penale?') }}{% endif %}
   <a class="btn sec" href="/prenotazioni/{{ p.id }}/conto" target="_blank">Stampa conto</a>
   <a class="btn sec" href="/prenotazioni/{{ p.id }}/conferma-email" target="_blank">Testo di conferma</a>
+  {% if p.ospite.email and p.stato in ('opzione', 'confermata') %}{{ azione('invia_conferma', 'Invia la conferma', 'sec') }}{% endif %}
   <a class="btn sec" href="/planner?da={{ p.arrivo }}">Nel planner</a>
   <a class="btn sec" href="/ospiti/{{ p.ospite.id }}">Scheda ospite</a>
 </div>
@@ -45,6 +46,7 @@
 <div class="largo"><label>Descrizione</label><input name="descrizione" placeholder="es. Cena, Minibar, Parcheggio" style="width:100%"></div>
 <div><label>Quantità</label><input name="quantita" value="1" style="width:70px"></div><div><label>Prezzo unitario €</label><input name="prezzo" required style="width:90px"></div>
 <div><label>IVA %</label><select name="iva"><option>10</option><option>22</option><option>4</option><option value="0">0 (esente)</option></select></div>
+{% if p.azienda_id %}<div><label>Sul conto</label><select name="conto"><option value="ospite">dell'ospite</option><option value="azienda">dell'azienda</option></select></div>{% endif %}
 <div><label>Costo unitario €</label><input name="costo" value="0" style="width:80px" title="Serve per il margine nel controllo di gestione"></div>
 <div><button>Addebita</button></div></form></details>
 <details style="margin-top:6px" {{ 'open' if p.stato == 'in_casa' and c.saldo > 0.009 }}><summary><b>+ Registra un pagamento</b></summary>
@@ -54,6 +56,18 @@
 <div class="largo"><label>Nota</label><input name="nota" style="width:100%"></div><label class="in"><input type="checkbox" name="rimborso" value="1"> è un rimborso</label>
 <div><button>Registra</button></div></form></details>
 {% endif %}
+<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px" id="documenti">
+<form method="post" class="bar" style="margin:0"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="azienda"><input type="hidden" name="ancora" value="#documenti">
+<b>Conto azienda</b> <select name="azienda_id"><option value="">nessuno: paga l'ospite</option>{% for a in aziende %}<option value="{{ a.id }}" {{ 'selected' if p.azienda_id == a.id }}>{{ a.ragione_sociale }}</option>{% endfor %}</select>
+<button class="sec mini">Imposta</button> <a class="mute" href="/aziende">gestisci le aziende</a></form>
+{% if p.azienda_id %}<p class="mute" style="margin:4px 0">Conto ospite {{ conti.ospite.totale|euro(2) }} (saldo {{ conti.ospite.saldo|euro(2) }}) · conto {{ p.azienda.ragione_sociale }} {{ conti.azienda.totale|euro(2) }} (saldo {{ conti.azienda.saldo|euro(2) }})</p>{% endif %}
+{% if p.stato in ('confermata', 'in_casa', 'partita', 'cancellata', 'no_show') %}<div class="riga-az">
+{% for conto in (('ospite', 'azienda') if p.azienda_id else ('ospite',)) %}{% if conti[conto].righe %}
+<form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="documento"><input type="hidden" name="conto" value="{{ conto }}"><input type="hidden" name="ancora" value="#documenti">
+<select name="tipo">{% if conto == 'ospite' %}<option value="ricevuta">Ricevuta</option>{% endif %}<option value="fattura">Fattura</option></select>
+<button class="sec mini">Emetti{{ ' (conto azienda)' if conto == 'azienda' }}</button></form>{% endif %}{% endfor %}</div>{% endif %}
+{% if documenti %}<table style="margin-top:6px">{% for d in documenti %}<tr><td><a href="/documenti/{{ d.id }}" target="_blank">{{ d.sigla }}</a></td><td>{{ {'ricevuta': 'Ricevuta', 'fattura': 'Fattura', 'nota_credito': 'Nota di credito'}[d.tipo] }}</td><td class="mute">{{ d.intestatario }}</td><td class="num">{{ d.totale|euro(2) }}</td><td class="mute">{{ 'a credito' if d.a_credito and not d.incassato_il else '' }}</td></tr>{% endfor %}</table>{% endif %}
+</div>
 {% if p.stato == 'in_casa' %}<div class="riga-az">
 <form method="post" style="display:inline"><input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="azione" value="check_out"><button class="verde">Check-out</button>
 {% if utente.ruolo == 'admin' and c.saldo > 0.009 %}<label class="in"><input type="checkbox" name="forza" value="1"> esci anche con saldo aperto (fattura differita)</label>{% endif %}</form></div>{% endif %}

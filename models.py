@@ -304,7 +304,8 @@ class Addebito(PerSpazio, db.Model):
         return round((self.quantita or 0) * (self.prezzo or 0), 2)
 
 
-METODI = {'contanti': 'Contanti', 'carta': 'Carta', 'bonifico': 'Bonifico', 'ota': 'Incassato dal portale', 'altro': 'Altro'}
+METODI = {'contanti': 'Contanti', 'carta': 'Carta', 'bonifico': 'Bonifico', 'ota': 'Incassato dal portale', 'altro': 'Altro',
+          'azienda': 'A credito (conto azienda)'}
 
 
 class Pagamento(PerSpazio, db.Model):
