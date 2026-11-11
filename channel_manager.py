@@ -108,7 +108,7 @@ PAGINA="""<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewp
 <title>Channel Manager · MASTER HOSPITALITY</title>
 <style>body{font:16px system-ui;background:#f4f7fb;color:#142c45;margin:25px auto;max-width:1050px;padding:0 18px}section{background:white;border:1px solid #dce5ee;border-radius:12px;padding:22px;margin:18px 0}label{display:inline-block;margin:8px}input,select,button{padding:9px;border-radius:5px;border:1px solid #a5b6c8}button{background:#155a86;color:white;cursor:pointer}table{border-collapse:collapse;width:100%}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.scroll{overflow:auto}#msg{white-space:pre-wrap}</style>
 <h1>Channel Manager · Laboratorio OTA</h1><p><b>SIMULAZIONE DIDATTICA</b> — nessun collegamento reale a Booking.com o Expedia. I cambiamenti alle prenotazioni aggiornano il PMS e la disponibilità.</p>
-<p><a href="/oggi">← Torna al gestionale</a> · <a href="/revenue">DynaPrice</a> · <a href="/api/revenue/ml">Previsioni Machine Learning (JSON)</a></p>
+<p><a href="/oggi">← Torna al gestionale</a> · <a href="/ota-lab">OTA Lab (invio e timeout)</a> · <a href="/revenue">DynaPrice</a> · <a href="/revenue/ml">Machine Learning</a></p>
 <section><h2>1. Disponibilità e tariffe ARI</h2><label>Dal <input type="date" id="da" value="{{oggi}}"></label><button onclick="aggiorna()">Sincronizza simulazione</button><div class="scroll"><table><thead><tr><th>Data</th><th>Camera</th><th>Disponibili</th><th>Tariffa €</th><th>Vendita</th></tr></thead><tbody id="righe"></tbody></table></div></section>
 <section><h2>2. Ricevi una prenotazione OTA simulata</h2>
 <p>Le commissioni sono definite in Struttura → Canali. Ripetere lo stesso riferimento non crea duplicati.</p>
