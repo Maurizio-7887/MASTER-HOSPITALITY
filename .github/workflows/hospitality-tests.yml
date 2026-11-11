@@ -1,0 +1,20 @@
+name: MASTER HOSPITALITY tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt pytest
+      - run: python -m compileall -q .
+      - run: python -m pytest -q
+        env:
+          DEMO_DATA: '0'
+          SECRET_KEY: ci-testing-secret
+          COOKIE_SICURO: '0'
