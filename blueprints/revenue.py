@@ -113,3 +113,37 @@ def modello_ml():
     from models import Impostazione
     risultato = report(orizzonte=max(1, min(60, request.args.get('giorni', type=int) or 14)))
     return jsonify({'ok': True, **risultato})
+
+
+@bp.route('/revenue/ml')
+def pagina_ml():
+    """Dashboard formativa sulla previsione addestrata, senza modifiche automatiche ai prezzi."""
+    from flask import render_template_string
+    from ml_hotel import report
+    risultato = report(orizzonte=28)
+    return render_template_string("""{% extends 'base.html' %}
+{% block titolo %}Machine Learning · MASTER HOSPITALITY{% endblock %}
+{% block corpo %}
+<h1>Machine Learning · Previsione occupazione</h1>
+<p>Il modello impara dallo storico delle camere vendute. La validazione usa gli ultimi giorni dello storico,
+separati dai giorni di addestramento. Non modifica automaticamente le tariffe del PMS.</p>
+{% if not r.pronto %}
+<div class="banner err">Modello non pronto: {{r.motivo}}. Per questo motivo continuano a valere
+le regole di DynaPrice, che non richiedono un modello addestrato.</div>
+{% else %}
+<div class="cards">
+<article><h3>Metodo</h3><strong>{{r.metodo}}</strong></article>
+<article><h3>Giorni training</h3><strong>{{r.giorni_training}}</strong></article>
+<article><h3>Giorni validazione</h3><strong>{{r.giorni_validazione}}</strong></article>
+<article><h3>MAE ML</h3><strong>{{(r.mae * 100)|round(2)}} punti %</strong></article>
+<article><h3>MAE confronto</h3><strong>{{(r.mae_baseline * 100)|round(2)}} punti %</strong></article>
+</div>
+<p><b>Interpretazione:</b> un MAE inferiore è preferibile. {% if r.migliora_baseline %}
+Il modello ha superato il confronto sul periodo di validazione.
+{% else %}Il modello NON supera il confronto: non utilizzarlo come base automatica per fissare le tariffe.{% endif %}</p>
+<table><thead><tr><th>Data</th><th>Occupazione prevista ML</th></tr></thead><tbody>
+{% for p in r.previsioni %}<tr><td>{{p.data}}</td><td>{{(p.occupazione_prevista*100)|round(1)}}%</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+<p><a href="/revenue">← Torna a DynaPrice</a> · <a href="/channel-manager">Apri Channel Manager</a></p>
+{% endblock %}""", r=risultato)
