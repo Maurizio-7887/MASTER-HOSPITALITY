@@ -22,7 +22,7 @@ Ruoli: direzione (tutto), revenue manager, reception (senza DynaPrice, controllo
 
 ## Corso con tutor
 
-Ogni allievo riceve l'Hotel Le Logge (Firenze, 24 camere, storico e prenotazioni future) e un tutor laterale con 34 passi in 8 lezioni: struttura, tariffe e regole di vendita, prenotazioni e planner, front office, DynaPrice, controllo di gestione, Channel Manager OTA e Machine Learning. Il tutor verifica da solo i dati dell'allievo; le domande finali si controllano sui numeri calcolati nel suo spazio.
+Ogni allievo riceve l'Hotel Le Logge (Firenze, 24 camere, storico e prenotazioni future) e un tutor laterale con 33 passi in 8 lezioni: struttura, tariffe e regole di vendita, prenotazioni e planner, front office, DynaPrice, controllo di gestione, Channel Manager OTA e Machine Learning. Il tutor verifica da solo i dati dell'allievo; le domande finali si controllano sui numeri calcolati nel suo spazio.
 
 ## Variabili (Railway)
 
