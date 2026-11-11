@@ -11,7 +11,7 @@ from datetime import date, datetime, time, timedelta
 from werkzeug.security import generate_password_hash
 
 from models import (Addebito, Alloggiato, Camera, Canale, CostoFisso, Evento, Impostazione, NotteVenduta, Ospite, Pagamento,
-                    PianoTariffario, Prenotazione, Restrizione, Stagione, TariffaGiorno, TipoCamera, Utente, db)
+                    PianoTariffario, Prenotazione, Restrizione, Stagione, TariffaGiorno, TipoCamera, Utente, OTAEvento, db)
 
 NOME_DEMO = 'Hotel Le Logge (demo)'
 
@@ -325,7 +325,7 @@ def _utenti_demo():
             db.session.add(Utente(nome=nome, username=username, ruolo=ruolo, password_hash=generate_password_hash(pw), spazio_id=spazio_corrente()))
 
 
-TABELLE_DATI = [Alloggiato, Pagamento, Addebito, NotteVenduta, Prenotazione, Ospite, TariffaGiorno, Restrizione, Camera, TipoCamera,
+TABELLE_DATI = [OTAEvento, Alloggiato, Pagamento, Addebito, NotteVenduta, Prenotazione, Ospite, TariffaGiorno, Restrizione, Camera, TipoCamera,
                 PianoTariffario, Stagione, Canale, Evento, CostoFisso]
 
 
