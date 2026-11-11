@@ -3,7 +3,6 @@ Nessuna chiamata a Booking/Expedia: per connettori reali servono accordi/API aut
 """
 from datetime import date, timedelta
 from flask import Blueprint, jsonify, request, render_template_string, g
-from sqlalchemy import and_
 from models import Canale, PianoTariffario, Prenotazione, TipoCamera, Impostazione, db
 from hotel import disponibili_per_notte, prezzo_camera, crea_prenotazione, ospite_da_dati, cancella, Errore
 
@@ -123,6 +122,6 @@ PAGINA="""<!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewp
 <label>Nome <input id="nome" placeholder="Mario"></label>
 <button onclick="invia(false)">Importa prenotazione</button><button onclick="invia(true)">Ricevi cancellazione OTA</button><p id="msg" role="status"></p></section>
 <script>
-async function aggiorna(){let r=await fetch('/api/channel-manager/inventario?da='+encodeURIComponent(document.querySelector('#da').value));let j=await r.json();document.querySelector('#righe').innerHTML=(j.righe||[]).map(x=>'<tr><td>'+x.data+'</td><td>'+x.tipo+'</td><td>'+x.disponibili+'</td><td>'+x.prezzo+'</td><td>'+(x.stop_sell?'STOP SELL':'Aperta')+'</td></tr>').join('');}
+async function aggiorna(){let r=await fetch('/api/channel-manager/inventario?da='+encodeURIComponent(document.querySelector('#da').value));let j=await r.json();let tbody=document.querySelector('#righe');tbody.replaceChildren();for(let x of (j.righe||[])){let tr=document.createElement('tr');for(let v of [x.data,x.tipo,x.disponibili,x.prezzo,x.stop_sell?'STOP SELL':'Aperta']){let td=document.createElement('td');td.textContent=String(v);tr.appendChild(td);}tbody.appendChild(tr);}}
 async function invia(canc){let v=id=>document.getElementById(id).value;let b={canale_id:v('canale'),tipo_id:v('tipo'),piano_id:v('piano'),arrivo:v('arrivo'),partenza:v('partenza'),riferimento:v('ref'),cognome:v('cognome'),nome:v('nome')};let url=canc?'/api/channel-manager/cancella':'/api/channel-manager/prenotazione';let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});let j=await r.json();document.querySelector('#msg').textContent=j.ok?(j.duplicato?'Evento già elaborato: ':'Registrato: ')+j.codice:(j.error||'Errore');aggiorna();}
 aggiorna();</script></html>"""
