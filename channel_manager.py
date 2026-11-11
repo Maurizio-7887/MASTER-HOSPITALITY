@@ -4,7 +4,7 @@ Nessuna chiamata a Booking/Expedia: per connettori reali servono accordi/API aut
 from datetime import date, timedelta
 from flask import Blueprint, jsonify, request, render_template_string, g
 from sqlalchemy import and_
-from models import Canale, PianoTariffario, Prenotazione, TipoCamera, db
+from models import Canale, PianoTariffario, Prenotazione, TipoCamera, Impostazione, db
 from hotel import disponibili_per_notte, prezzo_camera, crea_prenotazione, ospite_da_dati, cancella, Errore
 
 bp = Blueprint('channel', __name__)
@@ -68,6 +68,7 @@ def prenotazione():
                               'email':str(body.get('email') or '')})
         p=crea_prenotazione(ospite,tipo.id,piano.id,canale.id,arrivo,partenza,adulti,bambini,
                            stato='confermata',rif_canale=ref,note='Importata dal Channel Manager simulato')
+        Impostazione.scrivi('corso_ota_importazioni', str(int(Impostazione.leggi('corso_ota_importazioni') or '0') + 1))
         db.session.commit()
         return jsonify({'ok':True,'duplicato':False,'id':p.id,'codice':p.codice}),201
     except (KeyError,ValueError,TypeError,Errore) as e:
@@ -88,6 +89,7 @@ def cancellazione():
         if p.stato=='cancellata':
             return jsonify({'ok':True,'duplicato':True,'codice':p.codice})
         cancella(p)
+        Impostazione.scrivi('corso_ota_cancellazioni', str(int(Impostazione.leggi('corso_ota_cancellazioni') or '0') + 1))
         db.session.commit()
         return jsonify({'ok':True,'duplicato':False,'codice':p.codice})
     except (KeyError,ValueError,TypeError,Errore) as e:
