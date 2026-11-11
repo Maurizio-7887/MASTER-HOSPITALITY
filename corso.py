@@ -39,6 +39,8 @@ def carica_base_corso():
     Impostazione.scrivi('tutor_max', '0')
     Impostazione.scrivi('corso_canc_base', str(_cancellate_oggi()))
     Impostazione.scrivi('corso_simulazioni', '0')
+    Impostazione.scrivi('corso_ota_importazioni', '0')
+    Impostazione.scrivi('corso_ota_cancellazioni', '0')
     db.session.commit()
 
 
@@ -250,6 +252,49 @@ LEZIONI = [
          'testo': '<p>Sempre sul mese scorso: quale canale lascia il <b>margine per notte più basso</b>? Scrivi il nome.</p><p class="tu-mute">Non sempre è quello con la commissione più alta: contano anche prezzo medio, durata e piano tariffario.</p>'},
     ]},
 ]
+
+# Laboratori integrativi: il corso base continua a funzionare senza perdere i progressi precedenti.
+def v_ota_importazione():
+    return _ok(_int('corso_ota_importazioni') >= 1,
+               'Nel Channel Manager scegli un canale OTA e importa una prenotazione simulata; controlla poi il planner.')
+
+def v_ota_cancellazione():
+    return _ok(_int('corso_ota_cancellazioni') >= 1,
+               'Nel Channel Manager ricevi la cancellazione della prenotazione OTA; verifica che la disponibilita torni libera.')
+
+def d_ota(risposta):
+    t = (risposta or '').lower()
+    return _ok(('disponibil' in t or 'camera' in t) and ('tariff' in t or 'prezz' in t) and ('prenot' in t),
+               'Descrivi almeno disponibilita delle camere, tariffe e prenotazioni: sono i tre flussi ARI/booking.')
+
+def d_ml(risposta):
+    t = (risposta or '').lower().replace(',', '.')
+    return _ok('mae' in t and ('stor' in t or 'valid' in t or 'error' in t),
+               'Leggi /api/revenue/ml: spiega il MAE nella validazione su giorni storici non usati per addestrare il modello.')
+
+LEZIONI.extend([
+    {'titolo': '7 · Channel Manager, canali OTA e sincronizzazione', 'passi': [
+        {'titolo':'I tre flussi fondamentali', 'info':True, 'dove':'/channel-manager',
+         'testo':'<p>Apri <b>Channel Manager</b>: la sincronizzazione bidirezionale comprende <b>disponibilita</b>, <b>tariffe</b> e <b>prenotazioni</b>. Questo laboratorio simula i portali: non invia dati a Booking.com o Expedia.</p>'},
+        {'titolo':'Invia il calendario ARI', 'info':True,'dove':'/channel-manager',
+         'testo':'<p>Premi <b>Sincronizza simulazione</b>. Leggi le camere vendibili, le tariffe e lo stop sell. Il calcolo legge le prenotazioni reali dello spazio dell allievo.</p>'},
+        {'titolo':'Importa una prenotazione OTA', 'verifica':v_ota_importazione,'dove':'/channel-manager',
+         'testo':'<p>Inserisci canale OTA, camera, piano, arrivo e partenza, riferimento univoco e cognome. Premi <b>Importa prenotazione</b>. Poi torna al planner e verifica che la disponibilita sia diminuita. Ripeti lo stesso riferimento: non si deve creare un doppione.</p>'},
+        {'titolo':'Importa una cancellazione OTA', 'verifica':v_ota_cancellazione,'dove':'/channel-manager',
+         'testo':'<p>Immetti lo stesso canale e riferimento della prenotazione OTA, poi premi <b>Ricevi cancellazione OTA</b>. Verifica che la prenotazione risulti cancellata e che la camera sia nuovamente disponibile.</p>'},
+        {'titolo':'Spiega la sincronizzazione', 'domanda':d_ota,'dove':'/channel-manager',
+         'testo':'<p>Quali tre categorie di informazioni devono restare coerenti tra PMS e portali online? Scrivile nella risposta.</p>'},
+    ]},
+    {'titolo':'8 · Machine Learning per la previsione', 'passi': [
+        {'titolo':'Il modello addestrato', 'info':True,'dove':'/api/revenue/ml',
+         'testo':'<p>Apri il report JSON: la regressione ridge usa i dati giornalieri passati, il giorno della settimana e la stagionalita. Richiede almeno 30 giorni con vendite; senza dati sufficienti segnala <b>non pronto</b>.</p>'},
+        {'titolo':'Controlla la validazione', 'domanda':d_ml,'dove':'/api/revenue/ml',
+         'testo':'<p>Nel report confronta <b>MAE</b> del modello e <b>MAE baseline</b>. Spiega come il MAE misura l errore sui giorni storici di validazione e quando il modello non migliora il metodo semplice.</p>'},
+        {'titolo':'Dalla previsione alla scelta del prezzo','info':True,'dove':'/revenue',
+         'testo':'<p>Confronta le previsioni ML con le stime DynaPrice. Il prezzo suggerito nel PMS continua ad adottare le regole di margine: il modello ML non cambia automaticamente i prezzi fino alla sua validazione.</p>'},
+    ]},
+])
+
 PASSI = [(i, p) for i, l in enumerate(LEZIONI) for p in l['passi']]
 
 
