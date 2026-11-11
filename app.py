@@ -26,9 +26,10 @@ def create_app(config=None):
     import accesso
     import corso
     import channel_manager
+    import ota_sync
     import piattaforma
     from blueprints import front, report, revenue, struttura
-    for bp in (accesso.bp, piattaforma.bp, corso.bp, channel_manager.bp, abbonamento.bp, front.bp, struttura.bp, revenue.bp, report.bp):
+    for bp in (accesso.bp, piattaforma.bp, corso.bp, channel_manager.bp, ota_sync.bp, abbonamento.bp, front.bp, struttura.bp, revenue.bp, report.bp):
         app.register_blueprint(bp)
     accesso.proteggi(app)
 
