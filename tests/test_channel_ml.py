@@ -41,3 +41,32 @@ def test_ml_api_graceful_fallback(demo, client):
         assert 0<=data['mae_baseline']<=1
     else:
         assert data['motivo']
+
+
+def test_ota_lab_sync_timeout_recovery(demo,client):
+    from models import Canale, OTAEvento
+    c=Canale.query.filter_by(tipo='ota',attivo=True).first()
+    page=client.get('/ota-lab')
+    assert page.status_code==200
+    assert b'Solo laboratorio didattico' in page.data
+    payload={'canale_id':c.id,'giorni':3,'simula_errore':False}
+    ok=client.post('/api/ota-lab/sincronizza',json=payload)
+    assert ok.status_code==200 and ok.get_json()['ok']
+    assert len(ok.get_json()['righe'])>=3
+    bad=client.post('/api/ota-lab/sincronizza',json={**payload,'simula_errore':True})
+    assert bad.status_code==503
+    evento_id=bad.get_json()['evento_id']
+    assert OTAEvento.query.filter_by(stato='errore').count()==1
+    fixed=client.post('/api/ota-lab/recupera',json={'evento_id':evento_id})
+    assert fixed.status_code==200 and fixed.get_json()['ok']
+    assert OTAEvento.query.filter_by(stato='risolto').count()==1
+    repeat=client.post('/api/ota-lab/recupera',json={'evento_id':evento_id})
+    assert repeat.get_json()['duplicato']
+    assert client.post('/api/ota-lab/recupera',json={'evento_id':999999}).status_code==404
+
+def test_ota_lab_rejects_invalid_channel(demo,client):
+    from models import Canale
+    diretto=Canale.query.filter_by(tipo='diretto').first()
+    r=client.post('/api/ota-lab/sincronizza',json={'canale_id':diretto.id})
+    assert r.status_code==400
+    assert client.post('/api/ota-lab/sincronizza',json={'canale_id':'nope'}).status_code==400
