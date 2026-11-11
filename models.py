@@ -336,3 +336,16 @@ class Alloggiato(PerSpazio, db.Model):
     luogo_rilascio = db.Column(db.String(80), default='')
     esente_tassa = db.Column(db.Boolean, default=False)
     motivo_esenzione = db.Column(db.String(60), default='')
+
+
+class OTAEvento(PerSpazio, db.Model):
+    """Eventi simulati di sincronizzazione OTA: non sono chiamate a portali reali."""
+    __tablename__ = 'ota_eventi'
+    id = db.Column(db.Integer, primary_key=True)
+    canale_id = db.Column(db.Integer, db.ForeignKey('canali.id', ondelete='CASCADE'), nullable=False, index=True)
+    tipo = db.Column(db.String(16), nullable=False)  # ari | errore | recupero
+    stato = db.Column(db.String(16), nullable=False)  # inviato | errore | risolto
+    messaggio = db.Column(db.String(240), nullable=False)
+    creato_il = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    risolto_il = db.Column(db.DateTime, nullable=True)
+    canale = db.relationship('Canale')
