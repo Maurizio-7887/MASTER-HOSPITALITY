@@ -8,7 +8,7 @@ from config import Config
 from models import db
 
 TABELLE_PER_SPAZIO = ['tipi_camera', 'camere', 'piani_tariffari', 'stagioni', 'restrizioni', 'tariffe_giorno', 'canali', 'eventi',
-                      'costi_fissi', 'ospiti', 'prenotazioni', 'notti_vendute', 'addebiti', 'pagamenti', 'alloggiati']
+                      'costi_fissi', 'ota_eventi', 'ospiti', 'prenotazioni', 'notti_vendute', 'addebiti', 'pagamenti', 'alloggiati']
 
 
 def create_app(config=None):
