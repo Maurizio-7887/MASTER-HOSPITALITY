@@ -104,3 +104,12 @@ def _tutor():
         controlla_in_silenzio()
     except Exception:   # noqa: BLE001
         db.session.rollback()
+
+
+@bp.route('/api/revenue/ml')
+def modello_ml():
+    """Previsione ML addestrata nello spazio corrente e validata temporalmente."""
+    from ml_hotel import report
+    from models import Impostazione
+    risultato = report(orizzonte=max(1, min(60, request.args.get('giorni', type=int) or 14)))
+    return jsonify({'ok': True, **risultato})
