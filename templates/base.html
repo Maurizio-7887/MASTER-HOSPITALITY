@@ -18,6 +18,7 @@
   <a href="/ospiti" class="{{ 'on' if request.path.startswith('/ospiti') }}">Ospiti</a>
   <a href="/housekeeping" class="{{ 'on' if request.path.startswith('/housekeeping') }}">Housekeeping</a>
   {% if utente and utente.ruolo in ('admin', 'revenue') %}
+  <a href="/ota-lab" class="{{ 'on' if request.path.startswith('/ota-lab') }}">OTA Lab</a>
   <a href="/channel-manager" class="{{ 'on' if request.path.startswith('/channel-manager') }}">Channel Manager</a>
   <a href="/revenue" class="{{ 'on' if request.path.startswith('/revenue') }}">DynaPrice</a>
   <a href="/revenue/ml" class="{{ 'on' if request.path.startswith('/revenue/ml') }}">Machine Learning</a>
