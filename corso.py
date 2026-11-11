@@ -41,6 +41,9 @@ def carica_base_corso():
     Impostazione.scrivi('corso_simulazioni', '0')
     Impostazione.scrivi('corso_ota_importazioni', '0')
     Impostazione.scrivi('corso_ota_cancellazioni', '0')
+    Impostazione.scrivi('corso_ota_sync', '0')
+    Impostazione.scrivi('corso_ota_errori', '0')
+    Impostazione.scrivi('corso_ota_recuperi', '0')
     db.session.commit()
 
 
@@ -262,6 +265,18 @@ def v_ota_cancellazione():
     return _ok(_int('corso_ota_cancellazioni') >= 1,
                'Nel Channel Manager ricevi la cancellazione della prenotazione OTA; verifica che la disponibilita torni libera.')
 
+def v_ota_sync():
+    return _ok(_int('corso_ota_sync') >= 1,
+               'Apri OTA Lab, seleziona Booking.com o Expedia e premi Invia disponibilita e tariffe.')
+
+def v_ota_timeout():
+    return _ok(_int('corso_ota_errori') >= 1,
+               'Apri OTA Lab e premi Simula errore di timeout: il registro deve segnalare errore.')
+
+def v_ota_recupero():
+    return _ok(_int('corso_ota_recuperi') >= 1,
+               'Nel registro OTA Lab premi Recupera sulla riga in errore.')
+
 def d_ota(risposta):
     t = (risposta or '').lower()
     return _ok(('disponibil' in t or 'camera' in t) and ('tariff' in t or 'prezz' in t) and ('prenot' in t),
@@ -276,12 +291,16 @@ LEZIONI.extend([
     {'titolo': '7 · Channel Manager, canali OTA e sincronizzazione', 'passi': [
         {'titolo':'I tre flussi fondamentali', 'info':True, 'dove':'/channel-manager',
          'testo':'<p>Apri <b>Channel Manager</b>: la sincronizzazione bidirezionale comprende <b>disponibilita</b>, <b>tariffe</b> e <b>prenotazioni</b>. Questo laboratorio simula i portali: non invia dati a Booking.com o Expedia.</p>'},
-        {'titolo':'Invia il calendario ARI', 'info':True,'dove':'/channel-manager',
-         'testo':'<p>Premi <b>Sincronizza simulazione</b>. Leggi le camere vendibili, le tariffe e lo stop sell. Il calcolo legge le prenotazioni reali dello spazio dell allievo.</p>'},
+        {'titolo':'Invia il calendario ARI', 'verifica':v_ota_sync,'dove':'/ota-lab',
+         'testo':'<p>Apri <b>OTA Lab</b>, seleziona il portale e premi <b>Invia disponibilita e tariffe</b>. Il programma registra una sincronizzazione simulata di disponibilita e prezzi.</p>'},
         {'titolo':'Importa una prenotazione OTA', 'verifica':v_ota_importazione,'dove':'/channel-manager',
          'testo':'<p>Inserisci canale OTA, camera, piano, arrivo e partenza, riferimento univoco e cognome. Premi <b>Importa prenotazione</b>. Poi torna al planner e verifica che la disponibilita sia diminuita. Ripeti lo stesso riferimento: non si deve creare un doppione.</p>'},
         {'titolo':'Importa una cancellazione OTA', 'verifica':v_ota_cancellazione,'dove':'/channel-manager',
          'testo':'<p>Immetti lo stesso canale e riferimento della prenotazione OTA, poi premi <b>Ricevi cancellazione OTA</b>. Verifica che la prenotazione risulti cancellata e che la camera sia nuovamente disponibile.</p>'},
+        {'titolo':'Provoca un errore di timeout', 'verifica':v_ota_timeout,'dove':'/ota-lab',
+         'testo':'<p>In <b>OTA Lab</b> premi <b>Simula errore di timeout</b>. L invio fallisce volutamente: controlla la riga rossa o in errore nel registro.</p>'},
+        {'titolo':'Recupera la sincronizzazione', 'verifica':v_ota_recupero,'dove':'/ota-lab',
+         'testo':'<p>Nel registro clicca <b>Recupera</b> sulla sincronizzazione fallita e verifica che lo stato diventi risolto.</p>'},
         {'titolo':'Spiega la sincronizzazione', 'domanda':d_ota,'dove':'/channel-manager',
          'testo':'<p>Quali tre categorie di informazioni devono restare coerenti tra PMS e portali online? Scrivile nella risposta.</p>'},
     ]},
@@ -396,5 +415,10 @@ def api_attiva():
         Impostazione.scrivi('tutor_max', '0')
         Impostazione.scrivi('corso_canc_base', str(_cancellate_oggi()))
         Impostazione.scrivi('corso_simulazioni', '0')
+        Impostazione.scrivi('corso_ota_importazioni', '0')
+        Impostazione.scrivi('corso_ota_cancellazioni', '0')
+        Impostazione.scrivi('corso_ota_sync', '0')
+        Impostazione.scrivi('corso_ota_errori', '0')
+        Impostazione.scrivi('corso_ota_recuperi', '0')
         db.session.commit()
     return jsonify({'ok': True, **stato()})
