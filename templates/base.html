@@ -20,6 +20,7 @@
   {% if utente and utente.ruolo in ('admin', 'revenue') %}
   <a href="/channel-manager" class="{{ 'on' if request.path.startswith('/channel-manager') }}">Channel Manager</a>
   <a href="/revenue" class="{{ 'on' if request.path.startswith('/revenue') }}">DynaPrice</a>
+  <a href="/revenue/ml" class="{{ 'on' if request.path.startswith('/revenue/ml') }}">Machine Learning</a>
   <a href="/controllo" class="{{ 'on' if request.path.startswith('/controllo') }}">Controllo</a>
   <a href="/struttura" class="{{ 'on' if request.path.startswith('/struttura') }}">Struttura</a>
   {% endif %}
