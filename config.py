@@ -1,5 +1,7 @@
 import os
 
+from sqlalchemy.pool import NullPool
+
 
 def _database_url():
     url = os.environ.get('DATABASE_URL', '')
@@ -12,6 +14,9 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-masterhospitality-cambiami-in-produzione')
     SQLALCHEMY_DATABASE_URI = _database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Railway mette in sospensione il servizio solo se per 10 minuti non esce traffico: con il pool le connessioni
+    # al database restano aperte e il servizio non si addormenta mai. NullPool apre la connessione a ogni richiesta e la chiude subito.
+    SQLALCHEMY_ENGINE_OPTIONS = {'poolclass': NullPool} if os.environ.get('DATABASE_URL', '').startswith('postgres') else {}
 
 
     # Primo amministratore (facoltativo: in alternativa la pagina /primo-avvio)
